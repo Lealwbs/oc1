@@ -4,12 +4,10 @@
 #include <string>
 #include <cstring>  
 
-char* one_time_pad(const char msg[], const char key[], int length){
-    char result[length] = "";
+void one_time_pad(const char* msg, const char* key, char* result, int length){
     for(int i = 0; i < length; i++){
-        result[i] = msg[i] ^ key[i];
+        result[i] = (char)( (int)(msg[i]) ^ (int)(key[i]) );
     }
-    return result;
 }
 
 int main(){
@@ -18,18 +16,19 @@ int main(){
     char key[] = "chavealeatoria1234567890";
     int length = strlen(msg);
 
+    char msg_encrypted[100] = "";
+    char msg_uncrypted[100] = "";
+
     std::cout << "Mensagem original:" << std::endl;
     std::cout << msg << std::endl << std::endl;
     
-    char msg_encrypted[] = one_time_pad(msg, key, length);
+    one_time_pad(msg, key, msg_encrypted, length);
     std::cout << "Mensagem encriptada:" << std::endl;
     std::cout << msg_encrypted << std::endl << std::endl;
 
-    char msg_uncrypted[] = one_time_pad(msg_encrypted, key, length);
+    one_time_pad(msg_encrypted, key, msg_uncrypted, length);
     std::cout << "Mensagem desencriptada:" << std::endl;
     std::cout << msg_uncrypted << std::endl << std::endl;
-
-    std::cout << "Hello, World!"[0] << std::endl;
 
     return 0;
 }
