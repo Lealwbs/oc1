@@ -30,6 +30,7 @@ run_p1: $(BUILD_DIR)/prob1
 
 # Rodar prob2
 run_p2: $(BUILD_DIR)/prob2
+	cls
 	./$(BUILD_DIR)/prob2
 
 # Limpar arquivos gerados

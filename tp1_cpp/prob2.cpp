@@ -8,8 +8,6 @@ void dot_product(int* row, int* col, int &result, int size, int i, int j){
     for(int k=0; k<size; k++){
         result += row[i*size + k] * col[k*size + j];
     }
-
-// 🌕  Descrição: Calcula o produto interno entre a coluna e a linha recebidas como parâmetros. 
 }
 
 void mat_mult(int* a, int* b, int* c, int size){
@@ -24,9 +22,6 @@ void mat_mult(int* a, int* b, int* c, int size){
 
         }
     }
-
-// 🌕  Descrição: responsável por iterar sobre as linhas da matriz A. Para cada linha dessa matriz, esse 
-// procedimento  deve  iterar  pelas  colunas  da  matriz  B,  chamar  o  procedimento  dot_product
 }
 
 void print_matrix(int* matrix, int size){
