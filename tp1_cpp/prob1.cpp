@@ -28,7 +28,7 @@ void print_vec(const char* vec, int len, bool hex=false){
 int main(){
 
     char msg[] = "essa mensagem vai sumir";
-    char key[] = "chave aleatoria 123890";
+    char key[] = "chave aleatoria 12345 67890";
     int length = strlen(msg);
 
     if( strlen(key) < length ){

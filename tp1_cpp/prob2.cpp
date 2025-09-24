@@ -3,6 +3,13 @@
 #include <iostream>
 #include <iomanip>
 
+const char* green = "\033[1;32m";
+const char* red = "\033[1;31m";
+const char* yellow = "\033[1;33m";
+const char* blue = "\033[1;34m";
+const char* reset = "\033[0m";
+const char* bold = "\033[1m";
+
 void dot_product(int* row, int* col, int &result, int size, int i, int j){
     result = 0;
     for(int k=0; k<size; k++){
@@ -45,16 +52,16 @@ int main(){
         {0, 1, 2, 3},
         {1, 0, 4, 1}};
 
-    std::cout << "Matrix A" << std::endl;
+    std::cout << bold << blue << "Matrix A" << reset << std::endl;
     print_matrix(*a, size);
-    
-    std::cout << std::endl << "Matrix B" << std::endl;
+
+    std::cout << bold << yellow << std::endl << "Matrix B" << reset << std::endl;
     print_matrix(*b, size);
 
     int c[size][size] = {};
     mat_mult(*a, *b, *c, size);
 
-    std::cout << std::endl << "Matrix C = A x B" << std::endl;
+    std::cout << bold << green << std::endl << "Matrix C = A x B" << reset << std::endl;
     print_matrix(*c, size);
 
     int exp[4][4] = {
@@ -63,7 +70,7 @@ int main(){
     {7, 9,  9,  9},
     {5, 3, 12, 12}};
 
-    std::cout << std::endl << "Matrix C expected" << std::endl;
+    std::cout << std::endl << bold << red << "Matrix C expected" << reset << std::endl;
     print_matrix(*exp, size);
 
     return 0;
