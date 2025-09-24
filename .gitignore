@@ -1,3 +1,7 @@
-*.exe
-*.o
-*.obj
+**/*.exe
+**/*.o
+**/*.obj
+
+# Ignore build directories
+build/
+tp1_cpp/build/
