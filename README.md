@@ -1308,4 +1308,717 @@ BLEU rs, rt, offset # Branch less equal unsigned → BGEU rt, rs, offset
     ld x1, 0(sp)
     ld x2, 8(sp)  
     # ... restaura todos os registradores
-    ld x
+    ld x31, 248(sp)
+    addi sp, sp, 256      # Libera espaço
+.end_macro
+
+# Macro para imprimir inteiro (simulador)
+.macro PRINT_INT reg
+    mv a0, \reg
+    li a7, 1              # System call print_int
+    ecall
+.end_macro
+
+# Macro para imprimir string
+.macro PRINT_STRING str
+    la a0, \str
+    li a7, 4              # System call print_string
+    ecall
+.end_macro
+
+# Macro para multiplicação por potência de 2
+.macro MUL_POW2 rd, rs, pow
+    slli \rd, \rs, \pow
+.end_macro
+
+# Macro para divisão por potência de 2 (unsigned)
+.macro DIV_POW2_U rd, rs, pow
+    srli \rd, \rs, \pow
+.end_macro
+
+# Macro para divisão por potência de 2 (signed)
+.macro DIV_POW2_S rd, rs, pow
+    srai \rd, \rs, \pow
+.end_macro
+```
+
+---
+
+## 15. Estrutura de Programas RISC-V
+
+### 15.1 Seções de Programa
+
+```assembly
+# Modelo completo de programa RISC-V
+.data
+    # Variáveis globais
+    array: .word 1, 2, 3, 4, 5
+    string: .string "Hello World\n"
+    float_val: .float 3.14159
+    double_val: .double 2.71828
+    buffer: .space 100        # Reserva 100 bytes
+    
+.bss
+    # Variáveis não inicializadas
+    temp_array: .space 400    # Array de 100 inteiros
+    
+.text
+    .globl main              # Torna main visível globalmente
+    
+main:
+    # Código principal
+    li a7, 10                # System call exit
+    ecall
+    
+# Função auxiliar
+function:
+    # Código da função
+    jalr x0, 0(ra)
+```
+
+### 15.2 Diretivas do Assembler
+
+#### Diretivas de Dados
+```assembly
+.byte value               # 8 bits
+.half value               # 16 bits  
+.word value               # 32 bits
+.dword value              # 64 bits
+.float value              # Float IEEE 754
+.double value             # Double IEEE 754
+.string "text"            # String com \0
+.ascii "text"             # String sem \0
+.space n                  # n bytes zerados
+.zero n                   # n bytes zerados (sinônimo)
+.align n                  # Alinha na fronteira 2^n
+```
+
+#### Diretivas de Controle
+```assembly
+.text                     # Seção de código
+.data                     # Seção de dados inicializados
+.bss                      # Seção de dados não inicializados
+.globl symbol             # Torna símbolo global
+.local symbol             # Símbolo local
+.weak symbol              # Símbolo fraco
+.type symbol, @function   # Define tipo do símbolo
+.size symbol, expression  # Define tamanho
+```
+
+### 15.3 System Calls Básicos
+
+#### Tabela de System Calls (Simuladores)
+| Código (a7) | Função | Argumentos | Retorno |
+|-------------|--------|------------|---------|
+| 1 | print_int | a0 = int | - |
+| 2 | print_float | a0 = float | - |
+| 3 | print_double | a0 = double | - |
+| 4 | print_string | a0 = string addr | - |
+| 5 | read_int | - | a0 = int |
+| 6 | read_float | - | a0 = float |
+| 7 | read_double | - | a0 = double |
+| 8 | read_string | a0 = buffer, a1 = size | - |
+| 9 | sbrk | a0 = bytes | a0 = address |
+| 10 | exit | - | - |
+| 11 | print_char | a0 = char | - |
+| 12 | read_char | - | a0 = char |
+| 13 | open | a0 = filename, a1 = flags | a0 = fd |
+| 14 | read | a0 = fd, a1 = buffer, a2 = size | a0 = bytes |
+| 15 | write | a0 = fd, a1 = buffer, a2 = size | a0 = bytes |
+| 16 | close | a0 = fd | a0 = result |
+| 17 | exit2 | a0 = exit code | - |
+
+#### Exemplos de System Calls
+```assembly
+# Imprimir "Hello World"
+print_hello:
+    la a0, hello_msg
+    li a7, 4              # print_string
+    ecall
+    jalr x0, 0(ra)
+
+.data
+hello_msg: .string "Hello World\n"
+
+# Ler um inteiro do usuário
+read_integer:
+    li a7, 5              # read_int
+    ecall
+    # a0 agora contém o inteiro lido
+    jalr x0, 0(ra)
+
+# Alocar memória dinâmica
+malloc:
+    # a0 já contém o número de bytes
+    li a7, 9              # sbrk
+    ecall
+    # a0 agora contém o endereço alocado
+    jalr x0, 0(ra)
+```
+
+---
+
+## 16. Exemplos Avançados e Algoritmos
+
+### 16.1 Ordenação (Bubble Sort)
+
+```cpp
+// C++
+void bubble_sort(int arr[], int n) {
+    for (int i = 0; i < n-1; i++) {
+        for (int j = 0; j < n-i-1; j++) {
+            if (arr[j] > arr[j+1]) {
+                int temp = arr[j];
+                arr[j] = arr[j+1];
+                arr[j+1] = temp;
+            }
+        }
+    }
+}
+
+// RISC-V
+bubble_sort:
+    # a0 = array address, a1 = size
+    addi sp, sp, -32
+    sd ra, 24(sp)
+    sd s0, 16(sp)         # i
+    sd s1, 8(sp)          # j
+    sd s2, 0(sp)          # array base
+    
+    mv s2, a0             # s2 = array base
+    li s0, 0              # i = 0
+    
+outer_loop:
+    addi t0, a1, -1       # t0 = n-1
+    bge s0, t0, sort_done # if i >= n-1, done
+    
+    li s1, 0              # j = 0
+    sub t1, t0, s0        # t1 = n-1-i
+    
+inner_loop:
+    bge s1, t1, next_i    # if j >= n-i-1, next i
+    
+    # Calcular &arr[j] e &arr[j+1]
+    sll t2, s1, 2         # t2 = j * 4 (word = 4 bytes)
+    add t3, s2, t2        # t3 = &arr[j]
+    lw t4, 0(t3)          # t4 = arr[j]
+    lw t5, 4(t3)          # t5 = arr[j+1]
+    
+    # if (arr[j] <= arr[j+1]) continue
+    ble t4, t5, no_swap
+    
+    # Swap arr[j] and arr[j+1]
+    sw t5, 0(t3)          # arr[j] = arr[j+1]
+    sw t4, 4(t3)          # arr[j+1] = temp
+    
+no_swap:
+    addi s1, s1, 1        # j++
+    j inner_loop
+    
+next_i:
+    addi s0, s0, 1        # i++
+    j outer_loop
+    
+sort_done:
+    ld s2, 0(sp)
+    ld s1, 8(sp)
+    ld s0, 16(sp)
+    ld ra, 24(sp)
+    addi sp, sp, 32
+    jalr x0, 0(ra)
+```
+
+### 16.2 Busca Binária
+
+```cpp
+// C++
+int binary_search(int arr[], int size, int target) {
+    int left = 0, right = size - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
+
+// RISC-V
+binary_search:
+    # a0 = array, a1 = size, a2 = target
+    li t0, 0              # left = 0
+    addi t1, a1, -1       # right = size - 1
+    
+search_loop:
+    bgt t0, t1, not_found # if left > right, not found
+    
+    # mid = left + (right - left) / 2
+    sub t2, t1, t0        # t2 = right - left
+    srl t2, t2, 1         # t2 = (right - left) / 2
+    add t2, t0, t2        # t2 = mid = left + (right-left)/2
+    
+    # Load arr[mid]
+    sll t3, t2, 2         # t3 = mid * 4
+    add t3, a0, t3        # t3 = &arr[mid]
+    lw t4, 0(t3)          # t4 = arr[mid]
+    
+    # Compare arr[mid] with target
+    beq t4, a2, found     # if arr[mid] == target, found
+    blt t4, a2, search_right
+    
+search_left:
+    addi t1, t2, -1       # right = mid - 1
+    j search_loop
+    
+search_right:
+    addi t0, t2, 1        # left = mid + 1
+    j search_loop
+    
+found:
+    mv a0, t2             # return mid
+    jalr x0, 0(ra)
+    
+not_found:
+    li a0, -1             # return -1
+    jalr x0, 0(ra)
+```
+
+### 16.3 Fibonacci (Iterativo e Recursivo)
+
+```assembly
+# Fibonacci iterativo - O(n)
+fibonacci_iterative:
+    # a0 = n, retorna F(n)
+    li t0, 0              # a = 0 (F(0))
+    li t1, 1              # b = 1 (F(1))
+    
+    beqz a0, return_zero  # if n == 0, return 0
+    li t2, 1
+    beq a0, t2, return_one # if n == 1, return 1
+    
+    li t2, 2              # i = 2
+fib_loop:
+    bgt t2, a0, fib_done  # if i > n, done
+    add t3, t0, t1        # temp = a + b
+    mv t0, t1             # a = b
+    mv t1, t3             # b = temp
+    addi t2, t2, 1        # i++
+    j fib_loop
+    
+fib_done:
+    mv a0, t1             # return b
+    jalr x0, 0(ra)
+    
+return_zero:
+    li a0, 0
+    jalr x0, 0(ra)
+    
+return_one:
+    li a0, 1
+    jalr x0, 0(ra)
+
+# Fibonacci recursivo - O(2^n)
+fibonacci_recursive:
+    # a0 = n
+    addi sp, sp, -16
+    sd ra, 8(sp)
+    sd a0, 0(sp)
+    
+    li t0, 1
+    ble a0, t0, base_case # if n <= 1, return n
+    
+    # F(n-1)
+    addi a0, a0, -1
+    jal ra, fibonacci_recursive
+    mv t0, a0             # t0 = F(n-1)
+    
+    # F(n-2)  
+    ld a0, 0(sp)          # Restore original n
+    addi a0, a0, -2
+    jal ra, fibonacci_recursive
+    
+    add a0, a0, t0        # return F(n-1) + F(n-2)
+    j fib_return
+    
+base_case:
+    # return n (0 ou 1)
+    ld a0, 0(sp)
+    
+fib_return:
+    ld ra, 8(sp)
+    addi sp, sp, 16
+    jalr x0, 0(ra)
+```
+
+### 16.4 Manipulação de Strings
+
+```assembly
+# Comprimento de string
+strlen:
+    # a0 = string address
+    li t0, 0              # counter = 0
+strlen_loop:
+    lb t1, 0(a0)          # Load character
+    beqz t1, strlen_done  # if '\0', done
+    addi t0, t0, 1        # counter++
+    addi a0, a0, 1        # next character
+    j strlen_loop
+strlen_done:
+    mv a0, t0             # return length
+    jalr x0, 0(ra)
+
+# Copia string (strcpy)
+strcpy:
+    # a0 = dest, a1 = src
+    mv t0, a0             # Save dest start
+strcpy_loop:
+    lb t1, 0(a1)          # Load from src
+    sb t1, 0(a0)          # Store to dest
+    beqz t1, strcpy_done  # if '\0', done
+    addi a0, a0, 1        # next dest
+    addi a1, a1, 1        # next src
+    j strcpy_loop
+strcpy_done:
+    mv a0, t0             # return dest
+    jalr x0, 0(ra)
+
+# Compara strings (strcmp)
+strcmp:
+    # a0 = str1, a1 = str2
+strcmp_loop:
+    lb t0, 0(a0)          # Load from str1
+    lb t1, 0(a1)          # Load from str2
+    bne t0, t1, not_equal # if different, not equal
+    beqz t0, equal        # if both '\0', equal
+    addi a0, a0, 1        # next char str1
+    addi a1, a1, 1        # next char str2
+    j strcmp_loop
+    
+equal:
+    li a0, 0              # return 0
+    jalr x0, 0(ra)
+    
+not_equal:
+    sub a0, t0, t1        # return difference
+    jalr x0, 0(ra)
+```
+
+### 16.5 Operações com Matrizes
+
+```assembly
+# Multiplicação de matrizes C = A * B
+# A[m][k], B[k][n], C[m][n]
+matrix_multiply:
+    # a0 = A, a1 = B, a2 = C, a3 = m, a4 = k, a5 = n
+    addi sp, sp, -48
+    sd ra, 40(sp)
+    sd s0, 32(sp)         # i
+    sd s1, 24(sp)         # j  
+    sd s2, 16(sp)         # l
+    sd s3, 8(sp)          # matrix A
+    sd s4, 0(sp)          # matrix B
+    
+    mv s3, a0             # s3 = A
+    mv s4, a1             # s4 = B
+    li s0, 0              # i = 0
+    
+mat_i_loop:
+    bge s0, a3, mat_done  # if i >= m, done
+    li s1, 0              # j = 0
+    
+mat_j_loop:
+    bge s1, a5, mat_next_i # if j >= n, next i
+    li s2, 0              # l = 0
+    li t6, 0              # sum = 0
+    
+mat_l_loop:
+    bge s2, a4, mat_store # if l >= k, store result
+    
+    # Calculate A[i][l]
+    mul t0, s0, a4        # t0 = i * k
+    add t0, t0, s2        # t0 = i * k + l
+    sll t0, t0, 2         # t0 = (i*k + l) * 4
+    add t0, s3, t0        # t0 = &A[i][l]
+    lw t1, 0(t0)          # t1 = A[i][l]
+    
+    # Calculate B[l][j]  
+    mul t2, s2, a5        # t2 = l * n
+    add t2, t2, s1        # t2 = l * n + j
+    sll t2, t2, 2         # t2 = (l*n + j) * 4
+    add t2, s4, t2        # t2 = &B[l][j]
+    lw t3, 0(t2)          # t3 = B[l][j]
+    
+    # sum += A[i][l] * B[l][j]
+    mul t4, t1, t3
+    add t6, t6, t4
+    
+    addi s2, s2, 1        # l++
+    j mat_l_loop
+    
+mat_store:
+    # Store C[i][j] = sum
+    mul t0, s0, a5        # t0 = i * n
+    add t0, t0, s1        # t0 = i * n + j
+    sll t0, t0, 2         # t0 = (i*n + j) * 4
+    add t0, a2, t0        # t0 = &C[i][j]
+    sw t6, 0(t0)          # C[i][j] = sum
+    
+    addi s1, s1, 1        # j++
+    j mat_j_loop
+    
+mat_next_i:
+    addi s0, s0, 1        # i++
+    j mat_i_loop
+    
+mat_done:
+    ld s4, 0(sp)
+    ld s3, 8(sp)
+    ld s2, 16(sp)
+    ld s1, 24(sp)
+    ld s0, 32(sp)
+    ld ra, 40(sp)
+    addi sp, sp, 48
+    jalr x0, 0(ra)
+```
+
+---
+
+## 17. Dicas de Programação e Otimização
+
+### 17.1 Técnicas de Otimização
+
+#### 1. Loop Unrolling
+```assembly
+# Original loop
+loop:
+    lw t0, 0(a0)
+    addi t0, t0, 1
+    sw t0, 0(a0)
+    addi a0, a0, 4
+    addi a1, a1, -1
+    bnez a1, loop
+
+# Unrolled loop (4x)
+unrolled_loop:
+    lw t0, 0(a0)
+    lw t1, 4(a0)
+    lw t2, 8(a0)
+    lw t3, 12(a0)
+    addi t0, t0, 1
+    addi t1, t1, 1
+    addi t2, t2, 1
+    addi t3, t3, 1
+    sw t0, 0(a0)
+    sw t1, 4(a0)
+    sw t2, 8(a0)
+    sw t3, 12(a0)
+    addi a0, a0, 16
+    addi a1, a1, -4
+    bgtz a1, unrolled_loop
+```
+
+#### 2. Strength Reduction
+```assembly
+# Evitar multiplicação custosa
+# x = i * 8
+sll x, i, 3           # Melhor que: mul x, i, 8
+
+# Divisão por potência de 2
+sra x, y, 3           # x = y / 8 (signed)
+srl x, y, 3           # x = y / 8 (unsigned)
+```
+
+#### 3. Uso Eficiente de Registradores
+```assembly
+# Ruim - muitos loads/stores
+lw t0, var1
+lw t1, var2
+add t2, t0, t1
+sw t2, result
+
+# Melhor - mantenha valores em registradores
+# Carregue uma vez, use muitas vezes
+```
+
+### 17.2 Padrões Comuns
+
+#### Troca de Variáveis sem Temporário
+```assembly
+# Método 1: XOR
+xor a0, a0, a1
+xor a1, a0, a1
+xor a0, a0, a1
+
+# Método 2: Adição/Subtração (cuidado com overflow)
+add a0, a0, a1
+sub a1, a0, a1
+sub a0, a0, a1
+```
+
+#### Verificar se Número é Potência de 2
+```assembly
+# n é potência de 2 se (n & (n-1)) == 0 e n != 0
+check_power_of_2:
+    beqz a0, not_power    # if n == 0, not power of 2
+    addi t0, a0, -1       # t0 = n - 1
+    and t1, a0, t0        # t1 = n & (n-1)
+    beqz t1, is_power     # if result == 0, is power of 2
+not_power:
+    li a0, 0              # return false
+    jalr x0, 0(ra)
+is_power:
+    li a0, 1              # return true
+    jalr x0, 0(ra)
+```
+
+#### Contar Bits Set (Population Count)
+```assembly
+popcount:
+    # a0 = número, retorna quantidade de bits 1
+    li t0, 0              # count = 0
+popcount_loop:
+    beqz a0, popcount_done
+    addi t0, t0, 1        # count++
+    addi t1, a0, -1       # t1 = a0 - 1
+    and a0, a0, t1        # a0 = a0 & (a0-1) remove rightmost 1
+    j popcount_loop
+popcount_done:
+    mv a0, t0             # return count
+    jalr x0, 0(ra)
+```
+
+---
+
+## 18. Resumo dos Conceitos Principais
+
+### 18.1 Hierarquia de Conhecimento
+
+```
+1. ARQUITETURA RISC-V
+   ├── 32 registradores de 64 bits
+   ├── Instruções de 32 bits
+   ├── Principios: simplicidade, regularidade
+   └── 6 formatos de instrução (R, I, S, B, U, J)
+
+2. TIPOS DE INSTRUÇÕES
+   ├── Aritméticas: ADD, SUB, MUL, DIV
+   ├── Lógicas: AND, OR, XOR, shifts
+   ├── Memória: LD, SD, LW, SW, LB, SB
+   ├── Controle: BEQ, BNE, BLT, BGE, JAL, JALR
+   └── Sistema: ECALL, CSR operations
+
+3. REPRESENTAÇÃO NUMÉRICA
+   ├── Sistemas: binário, octal, decimal, hexadecimal
+   ├── Inteiros: complemento de 2, overflow
+   └── Ponto flutuante: IEEE 754, NaN, infinito
+
+4. DESEMPENHO
+   ├── Tempo = Instruções × CPI × Período
+   ├── MIPS, speedup, lei de Amdahl
+   └── Fatores: algoritmo, compilador, arquitetura
+
+5. PROGRAMAÇÃO ASSEMBLY
+   ├── Estruturas: if, while, for, funções
+   ├── Convenções: ABI, pilha, argumentos
+   └── Otimizações: loop unrolling, strength reduction
+```
+
+### 18.2 Comandos Essenciais por Categoria
+
+#### Movimento de Dados
+```assembly
+MV rd, rs                # Copia registrador
+LI rd, imm              # Carrega imediato
+LA rd, label            # Carrega endereço
+LD/SD rd, offset(rs)    # Load/Store 64-bit
+LW/SW rd, offset(rs)    # Load/Store 32-bit
+```
+
+#### Aritmética Básica
+```assembly
+ADD/SUB rd, rs1, rs2    # Soma/subtração
+ADDI rd, rs1, imm       # Soma com imediato
+MUL/DIV rd, rs1, rs2    # Multiplicação/divisão
+SLL/SRL/SRA             # Shifts lógicos/aritmético
+```
+
+#### Controle de Fluxo
+```assembly
+BEQ/BNE rs1, rs2, label # Branch igual/diferente
+BLT/BGE rs1, rs2, label # Branch menor/maior igual
+JAL/JALR                # Jump com link
+BEQZ/BNEZ rs, label     # Branch com zero
+```
+
+#### Lógica e Bits
+```assembly
+AND/OR/XOR rd, rs1, rs2 # Operações lógicas
+ANDI/ORI/XORI           # Com imediato
+NOT rd, rs              # Complemento (pseudo)
+SLT/SLTU rd, rs1, rs2   # Set less than
+```
+
+---
+
+## 19. Tabelas de Referência Rápida
+
+### 19.1 Registradores por Categoria
+
+| Categoria | Registradores | Uso Principal |
+|-----------|---------------|---------------|
+| **Especiais** | x0 (zero) | Constante 0 |
+| **Sistema** | x1 (ra), x2 (sp) | Return addr, Stack ptr |
+| **Argumentos** | x10-x17 (a0-a7) | Parâmetros de função |
+| **Temporários** | x5-x7, x28-x31 (t0-t6) | Cálculos temporários |
+| **Salvos** | x8-x9, x18-x27 (s0-s11) | Preservados entre chamadas |
+| **Ponteiros** | x3 (gp), x4 (tp), x8 (fp) | Global, Thread, Frame |
+
+### 19.2 Tamanhos de Dados
+
+| Nome | Bits | Bytes | Range (signed) | Range (unsigned) |
+|------|------|-------|----------------|------------------|
+| **byte** | 8 | 1 | -128 a 127 | 0 a 255 |
+| **halfword** | 16 | 2 | -32K a 32K-1 | 0 a 64K-1 |
+| **word** | 32 | 4 | -2G a 2G-1 | 0 a 4G-1 |
+| **doubleword** | 64 | 8 | -2^63 a 2^63-1 | 0 a 2^64-1 |
+
+### 19.3 Codificação de Formatos
+
+| Formato | Opcode | Uso Típico | Exemplo |
+|---------|--------|------------|---------|
+| **R** | 0110011 | reg-reg ops | ADD, SUB, AND |
+| **I** | vários | immediates, loads | ADDI, LD, JALR |
+| **S** | 0100011 | stores | SD, SW, SB |
+| **B** | 1100011 | branches | BEQ, BNE, BLT |
+| **U** | 0110111/0010111 | upper imm | LUI, AUIPC |
+| **J** | 1101111 | jumps | JAL |
+
+### 19.4 IEEE 754 Quick Reference
+
+| Formato | Sign | Exponent | Mantissa | Bias | Range |
+|---------|------|----------|----------|------|-------|
+| **Single** | 1 bit | 8 bits | 23 bits | 127 | ±1.4×10⁻⁴⁵ a ±3.4×10³⁸ |
+| **Double** | 1 bit | 11 bits | 52 bits | 1023 | ±4.9×10⁻³²⁴ a ±1.8×10³⁰⁸ |
+
+---
+
+## Conclusão
+
+Este resumo abrange os **conceitos fundamentais de Organização de Computadores I** com foco em **RISC-V Assembly**:
+
+### Tópicos Principais Cobertos:
+1. ✅ **Arquitetura RISC-V**: ISA, registradores, formatos de instrução
+2. ✅ **Instruções Assembly**: aritméticas, lógicas, memória, controle
+3. ✅ **Representação numérica**: inteiros, ponto flutuante IEEE 754
+4. ✅ **Análise de desempenho**: CPI, speedup, otimizações
+5. ✅ **Programação**: estruturas de controle, funções, algoritmos
+6. ✅ **Conceitos avançados**: exceções, system calls, CSR
+
+### Para Estudar:
+- **Pratique** convertendo código C para RISC-V
+- **Memorize** os registradores mais usados (a0-a7, t0-t6, s0-s11)
+- **Entenda** os formatos de instrução e como calcular endereços
+- **Domine** análise de desempenho e cálculos de speedup
+- **Implemente** algoritmos básicos em assembly
+
+> **"Torne o caso comum mais rápido!"** - Princípio fundamental da otimização em arquitetura de computadores.
