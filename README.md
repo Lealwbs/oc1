@@ -653,4 +653,659 @@ call_func:
     li t1, 10
     addi sp, sp, -16      # Aloca pilha
     sd t0, 0(sp)          # 9º argumento  
-    sd t1, 8(sp)          # 10º
+    sd t1, 8(sp)          # 10º argumento
+    
+    jal ra, func          # Chama função
+    
+    addi sp, sp, 16       # Limpa pilha
+    # Resultado em a0
+
+---
+
+## 10. Ponto Flutuante IEEE 754
+
+### 10.1 Registradores de Ponto Flutuante
+
+RISC-V possui **32 registradores de ponto flutuante separados** (f0-f31):
+
+| Reg | ABI | Descrição | Preservado |
+|-----|-----|-----------|------------|
+| `f0-f7` | `ft0-ft7` | FP temporaries | Não |
+| `f8-f9` | `fs0-fs1` | FP saved registers | Sim |
+| `f10-f11` | `fa0-fa1` | FP arguments/return values | Não |
+| `f12-f17` | `fa2-fa7` | FP arguments | Não |
+| `f18-f27` | `fs2-fs11` | FP saved registers | Sim |
+| `f28-f31` | `ft8-ft11` | FP temporaries | Não |
+
+### 10.2 Representação IEEE 754
+
+#### Single Precision (32 bits)
+```
+31 30    23 22                    0
+[S][Exponent][    Mantissa/Fraction    ]
+ 1     8              23
+```
+
+#### Double Precision (64 bits)
+```
+63 62         52 51                                0  
+[S][  Exponent  ][         Mantissa/Fraction         ]
+ 1      11                      52
+```
+
+### 10.3 Fórmula de Representação
+```
+Valor = (-1)^S × (1 + Mantissa) × 2^(Exponent - Bias)
+
+Bias:
+- Single: 127 (2^7 - 1)
+- Double: 1023 (2^10 - 1)
+```
+
+### 10.4 Tipos de Números IEEE 754
+
+| Tipo | Exponent | Mantissa | Valor |
+|------|----------|----------|-------|
+| **Zero** | 0 | 0 | ±0.0 |
+| **Subnormal** | 0 | ≠ 0 | ±0.mantissa × 2^(-bias+1) |
+| **Normal** | 1 a max-1 | qualquer | ±1.mantissa × 2^(exp-bias) |
+| **Infinito** | max | 0 | ±∞ |
+| **NaN** | max | ≠ 0 | Not a Number |
+
+#### Casos Especiais NaN
+- **SNAN** (Signaling NaN): Gera exceção
+- **QNAN** (Quiet NaN): Não gera exceção
+
+### 10.5 Instruções de Load/Store FP
+
+```assembly
+# Single precision (32 bits)
+FLW ft0, offset(rs1)      # Load float word
+FSW ft0, offset(rs1)      # Store float word
+
+# Double precision (64 bits)  
+FLD ft0, offset(rs1)      # Load float double
+FSD ft0, offset(rs1)      # Store float double
+```
+
+### 10.6 Operações Aritméticas de Ponto Flutuante
+
+#### Single Precision
+```assembly
+FADD.S fd, fs1, fs2       # fd = fs1 + fs2
+FSUB.S fd, fs1, fs2       # fd = fs1 - fs2
+FMUL.S fd, fs1, fs2       # fd = fs1 × fs2
+FDIV.S fd, fs1, fs2       # fd = fs1 ÷ fs2
+FSQRT.S fd, fs1           # fd = √fs1
+
+# Operações de sinal
+FSGNJ.S fd, fs1, fs2      # fd = |fs1| com sinal de fs2
+FSGNJN.S fd, fs1, fs2     # fd = |fs1| com sinal oposto de fs2
+FSGNJX.S fd, fs1, fs2     # fd = |fs1| com sinal XOR
+
+# Valor absoluto e negação (pseudoinstruções)
+FABS.S fd, fs1            # fd = |fs1| → FSGNJ.S fd, fs1, fs1
+FNEG.S fd, fs1            # fd = -fs1 → FSGNJN.S fd, fs1, fs1
+```
+
+#### Double Precision
+```assembly
+FADD.D fd, fs1, fs2       # fd = fs1 + fs2
+FSUB.D fd, fs1, fs2       # fd = fs1 - fs2
+FMUL.D fd, fs1, fs2       # fd = fs1 × fs2
+FDIV.D fd, fs1, fs2       # fd = fs1 ÷ fs2
+FSQRT.D fd, fs1           # fd = √fs1
+FSGNJ.D fd, fs1, fs2      # Manipulação de sinal
+FSGNJN.D fd, fs1, fs2
+FSGNJX.D fd, fs1, fs2
+```
+
+### 10.7 Comparações de Ponto Flutuante
+
+```assembly
+# Single precision
+FEQ.S rd, fs1, fs2        # rd = (fs1 == fs2) ? 1 : 0
+FLT.S rd, fs1, fs2        # rd = (fs1 < fs2) ? 1 : 0
+FLE.S rd, fs1, fs2        # rd = (fs1 <= fs2) ? 1 : 0
+
+# Double precision
+FEQ.D rd, fs1, fs2        # rd = (fs1 == fs2) ? 1 : 0
+FLT.D rd, fs1, fs2        # rd = (fs1 < fs2) ? 1 : 0
+FLE.D rd, fs1, fs2        # rd = (fs1 <= fs2) ? 1 : 0
+
+# Máximo e mínimo
+FMIN.S fd, fs1, fs2       # fd = min(fs1, fs2)
+FMAX.S fd, fs1, fs2       # fd = max(fs1, fs2)
+FMIN.D fd, fs1, fs2
+FMAX.D fd, fs1, fs2
+```
+
+### 10.8 Conversões de Tipo
+
+```assembly
+# Float ↔ Integer
+FCVT.S.W fd, rs1          # int32 → float
+FCVT.S.WU fd, rs1         # uint32 → float
+FCVT.S.L fd, rs1          # int64 → float
+FCVT.S.LU fd, rs1         # uint64 → float
+
+FCVT.W.S rd, fs1          # float → int32
+FCVT.WU.S rd, fs1         # float → uint32
+FCVT.L.S rd, fs1          # float → int64
+FCVT.LU.S rd, fs1         # float → uint64
+
+# Double ↔ Integer  
+FCVT.D.W fd, rs1          # int32 → double
+FCVT.D.WU fd, rs1         # uint32 → double
+FCVT.D.L fd, rs1          # int64 → double
+FCVT.D.LU fd, rs1         # uint64 → double
+
+FCVT.W.D rd, fs1          # double → int32
+FCVT.WU.D rd, fs1         # double → uint32
+FCVT.L.D rd, fs1          # double → int64
+FCVT.LU.D rd, fs1         # double → uint64
+
+# Float ↔ Double
+FCVT.D.S fd, fs1          # float → double
+FCVT.S.D fd, fs1          # double → float
+```
+
+### 10.9 Modos de Arredondamento
+
+| Modo | Código | Descrição |
+|------|--------|-----------|
+| RNE | 000 | Round to Nearest, ties to Even |
+| RTZ | 001 | Round towards Zero |
+| RDN | 010 | Round Down (-∞) |
+| RUP | 011 | Round Up (+∞) |
+| RMM | 100 | Round to Nearest, ties to Max |
+
+### 10.10 Exemplos de Uso
+
+```assembly
+# Exemplo 1: Calcular distância euclidiana sqrt(x² + y²)
+distance:
+    FMUL.S ft0, fa0, fa0      # ft0 = x²
+    FMUL.S ft1, fa1, fa1      # ft1 = y²
+    FADD.S ft0, ft0, ft1      # ft0 = x² + y²
+    FSQRT.S fa0, ft0          # fa0 = sqrt(x² + y²)
+    JALR x0, 0(ra)
+
+# Exemplo 2: Implementar fabs() manualmente
+my_fabs:
+    # Método 1: usando máscara de bits
+    LI t0, 0x7FFFFFFF         # Máscara para limpar bit de sinal
+    FMV.X.S t1, fa0           # Move float para int
+    AND t1, t1, t0            # Remove bit de sinal
+    FMV.S.X fa0, t1           # Move de volta para float
+    JALR x0, 0(ra)
+    
+    # Método 2: usando FSGNJ
+    FABS.S fa0, fa0           # Pseudoinstrução
+    JALR x0, 0(ra)
+
+# Exemplo 3: Soma de array de floats
+sum_array_float:
+    # a0 = ponteiro array, a1 = tamanho
+    LI t0, 0                  # i = 0
+    FCVT.S.W ft0, x0          # sum = 0.0
+sum_loop:
+    BGE t0, a1, sum_done      # if i >= size, done
+    SLL t1, t0, 2             # t1 = i * 4 (float = 4 bytes)
+    ADD t2, a0, t1            # t2 = &array[i]
+    FLW ft1, 0(t2)            # ft1 = array[i]
+    FADD.S ft0, ft0, ft1      # sum += array[i]
+    ADDI t0, t0, 1            # i++
+    J sum_loop
+sum_done:
+    FMV.S fa0, ft0            # return sum
+    JALR x0, 0(ra)
+```
+
+### 10.11 Exceções de Ponto Flutuante
+
+| Exceção | Causa | Resultado |
+|---------|-------|-----------|
+| **Invalid** | 0/0, ∞-∞, √(-x) | NaN |
+| **Divide by zero** | x/0 onde x≠0 | ±∞ |
+| **Overflow** | Resultado > máximo | ±∞ |
+| **Underflow** | Resultado < mínimo | ±0 ou subnormal |
+| **Inexact** | Arredondamento necessário | Valor arredondado |
+
+---
+
+## 11. Representação Numérica e Conversões
+
+### 11.1 Sistemas Numéricos
+
+#### Tabela de Conversão (4 bits)
+| Decimal | Binário | Octal | Hexadecimal |
+|---------|---------|-------|-------------|
+| 0 | 0000 | 0 | 0 |
+| 1 | 0001 | 1 | 1 |
+| 2 | 0010 | 2 | 2 |
+| 3 | 0011 | 3 | 3 |
+| 4 | 0100 | 4 | 4 |
+| 5 | 0101 | 5 | 5 |
+| 6 | 0110 | 6 | 6 |
+| 7 | 0111 | 7 | 7 |
+| 8 | 1000 | 10 | 8 |
+| 9 | 1001 | 11 | 9 |
+| 10 | 1010 | 12 | A |
+| 11 | 1011 | 13 | B |
+| 12 | 1100 | 14 | C |
+| 13 | 1101 | 15 | D |
+| 14 | 1110 | 16 | E |
+| 15 | 1111 | 17 | F |
+
+### 11.2 Conversão Entre Bases
+
+#### Decimal → Binário (Divisões sucessivas por 2)
+```
+37₁₀ → ?₂
+37 ÷ 2 = 18 resto 1
+18 ÷ 2 = 9  resto 0
+9  ÷ 2 = 4  resto 1
+4  ÷ 2 = 2  resto 0
+2  ÷ 2 = 1  resto 0
+1  ÷ 2 = 0  resto 1
+Resultado: 100101₂
+```
+
+#### Binário → Decimal (Potências de 2)
+```
+100101₂ = 1×2⁵ + 0×2⁴ + 0×2³ + 1×2² + 0×2¹ + 1×2⁰
+        = 32 + 0 + 0 + 4 + 0 + 1
+        = 37₁₀
+```
+
+#### Hexadecimal ↔ Binário (Grupos de 4 bits)
+```
+0xAB3F → ?₂
+A = 1010, B = 1011, 3 = 0011, F = 1111
+0xAB3F = 1010101100111111₂
+
+1101001010₂ → ?₁₆
+Grupo: 11 0100 1010 → 011 0100 1010
+3     4     A
+= 0x34A
+```
+
+### 11.3 Extensão de Sinal
+
+#### 4 bits → 8 bits
+```
+Positivo: 0101₂ (5) → 00000101₂ (5)
+Negativo: 1101₂ (-3) → 11111101₂ (-3)
+```
+
+#### Algoritmo para Extensão
+```assembly
+# Extensão de 32 para 64 bits (com sinal)
+sign_extend_32_to_64:
+    SLLI t0, a0, 32       # Desloca para posição alta
+    SRAI a0, t0, 32       # Desloca de volta (com extensão de sinal)
+    JALR x0, 0(ra)
+
+# Extensão de 32 para 64 bits (sem sinal)  
+zero_extend_32_to_64:
+    LI t0, 0xFFFFFFFF     # Máscara de 32 bits
+    AND a0, a0, t0        # Limpa bits superiores
+    JALR x0, 0(ra)
+```
+
+### 11.4 Representações de Números Negativos
+
+#### 1. Sinal-Magnitude
+```
++3: 0011
+-3: 1011
+Problemas: Dois zeros (+0, -0), aritmética complexa
+```
+
+#### 2. Complemento de 1
+```
++3: 0011
+-3: 1100 (inverte todos os bits)
+Problemas: Dois zeros (0000, 1111)
+```
+
+#### 3. Complemento de 2 (Padrão usado)
+```
++3: 0011
+-3: 1101 (complemento de 1 + 1)
+Vantagens: Um só zero, aritmética mais simples
+```
+
+### 11.5 Operações com Complemento de 2
+
+#### Negação (Algoritmo)
+```assembly
+negate:
+    NOT t0, a0            # Inverte todos os bits
+    ADDI a0, t0, 1        # Soma 1
+    JALR x0, 0(ra)
+    
+# Ou usando SUB
+negate_alt:
+    SUB a0, x0, a0        # a0 = 0 - a0
+    JALR x0, 0(ra)
+```
+
+#### Detecção de Overflow em Soma
+```
+Overflow ocorre quando:
+- Positivo + Positivo = Negativo
+- Negativo + Negativo = Positivo
+
+Fórmula: overflow = (a[31] == b[31]) && (sum[31] != a[31])
+```
+
+```assembly
+add_with_overflow_check:
+    ADD t0, a0, a1        # t0 = a + b
+    
+    # Verificar overflow
+    XOR t1, a0, a1        # t1 = a ^ b
+    BLTZ t1, no_overflow  # Se sinais diferentes, não há overflow
+    
+    XOR t2, t0, a0        # t2 = sum ^ a
+    BLTZ t2, overflow     # Se sinal mudou, houve overflow
+    
+no_overflow:
+    MV a0, t0             # Retorna resultado
+    LI a1, 0              # Flag overflow = false
+    JALR x0, 0(ra)
+    
+overflow:
+    LI a1, 1              # Flag overflow = true
+    JALR x0, 0(ra)
+```
+
+### 11.6 Ranges Numéricos
+
+#### Inteiros com Sinal (n bits)
+- **Mínimo**: -2^(n-1)
+- **Máximo**: 2^(n-1) - 1
+
+#### Inteiros sem Sinal (n bits)  
+- **Mínimo**: 0
+- **Máximo**: 2^n - 1
+
+#### Exemplos Práticos
+| Tipo | Bits | Min (signed) | Max (signed) | Max (unsigned) |
+|------|------|--------------|--------------|----------------|
+| byte | 8 | -128 | +127 | 255 |
+| halfword | 16 | -32,768 | +32,767 | 65,535 |
+| word | 32 | -2,147,483,648 | +2,147,483,647 | 4,294,967,295 |
+| doubleword | 64 | -2^63 | 2^63-1 | 2^64-1 |
+
+---
+
+## 12. Análise de Desempenho
+
+### 12.1 Fórmula Fundamental
+```
+Tempo de CPU = (Instruções/Programa) × (Ciclos/Instrução) × (Tempo/Ciclo)
+
+Ou equivalentemente:
+
+Tempo = Contagem_Instruções × CPI × Período_Clock
+```
+
+### 12.2 Métricas de Desempenho
+
+#### Definições Básicas
+```
+• Período de Clock (T) = Segundos/Ciclo
+• Frequência de Clock (f) = Ciclos/Segundo = 1/T
+• CPI = Ciclos Por Instrução (média ponderada)
+• IPC = Instruções Por Ciclo = 1/CPI
+• MIPS = Milhões de Instruções Por Segundo
+• FLOPS = Operações de Ponto Flutuante Por Segundo
+```
+
+#### Fórmulas Derivadas
+```
+MIPS = Frequência_Clock / (CPI × 10⁶)
+MIPS = Contagem_Instruções / (Tempo_CPU × 10⁶)
+
+Speedup = Tempo_Original / Tempo_Melhorado
+Speedup = (CPI_orig × f_orig) / (CPI_new × f_new)
+```
+
+### 12.3 Tabela de Conversão de Unidades
+
+#### Tempo
+| Unidade | Símbolo | Valor (segundos) | Exemplo |
+|---------|---------|------------------|---------|
+| segundo | s | 1 | 1 s |
+| milissegundo | ms | 10⁻³ | 1 ms = 0,001 s |
+| microssegundo | μs | 10⁻⁶ | 1 μs = 0,000001 s |
+| nanossegundo | ns | 10⁻⁹ | 1 ns = 10⁻⁹ s |
+| picossegundo | ps | 10⁻¹² | 1 ps = 10⁻¹² s |
+
+#### Frequência
+| Unidade | Símbolo | Valor (Hz) | Período |
+|---------|---------|------------|---------|
+| Hertz | Hz | 1 | 1 s |
+| Kilohertz | kHz | 10³ | 1 ms |
+| Megahertz | MHz | 10⁶ | 1 μs |
+| Gigahertz | GHz | 10⁹ | 1 ns |
+| Terahertz | THz | 10¹² | 1 ps |
+
+### 12.4 CPI por Tipo de Instrução
+
+#### Hierarquia de Tempo de Execução
+```
+1. Registrador-Registrador (ADD, SUB, AND, OR)     → 1-2 ciclos
+2. Imediato (ADDI, ANDI, shifts)                   → 1-2 ciclos  
+3. Load/Store (LD, SD)                             → 2-5 ciclos
+4. Branch (BEQ, BNE)                               → 1-3 ciclos
+5. Jump (JAL, JALR)                                → 1-2 ciclos
+6. Multiplicação (MUL, MULH)                       → 3-10 ciclos
+7. Divisão (DIV, REM)                              → 10-40 ciclos
+8. Ponto Flutuante Básico (FADD, FMUL)           → 3-6 ciclos
+9. Ponto Flutuante Complexo (FDIV, FSQRT)        → 10-50 ciclos
+```
+
+#### Cálculo de CPI Médio
+```
+CPI_médio = Σ(CPI_i × f_i)
+
+onde:
+CPI_i = CPI da instrução tipo i
+f_i = frequência da instrução tipo i no programa
+```
+
+### 12.5 Exemplos de Cálculos
+
+#### Exemplo 1: Comparação de Máquinas
+```
+Máquina A: Clock = 2.5 GHz, CPI = 2.0
+Máquina B: Clock = 3.0 GHz, CPI = 2.5
+Qual é mais rápida para o mesmo programa?
+
+Tempo_A = N × 2.0 × (1/2.5×10⁹) = N × 0.8×10⁻⁹ s
+Tempo_B = N × 2.5 × (1/3.0×10⁹) = N × 0.833×10⁻⁹ s
+
+Speedup = Tempo_B/Tempo_A = 0.833/0.8 = 1.04
+
+Máquina A é 4% mais rápida.
+```
+
+#### Exemplo 2: Otimização de Compilador
+```
+Programa original: 100M instruções, CPI = 2.2, Clock = 2 GHz
+Programa otimizado: 85M instruções, CPI = 2.5, Clock = 2 GHz
+
+Tempo_orig = 100×10⁶ × 2.2 × 0.5×10⁻⁹ = 0.11 s
+Tempo_opt = 85×10⁶ × 2.5 × 0.5×10⁻⁹ = 0.106 s
+
+Speedup = 0.11/0.106 = 1.038 → 3.8% mais rápido
+```
+
+#### Exemplo 3: Mix de Instruções
+```
+Programa com:
+- 40% ALU (CPI = 1)
+- 30% Load/Store (CPI = 4)  
+- 20% Branch (CPI = 2)
+- 10% Other (CPI = 3)
+
+CPI_médio = 0.4×1 + 0.3×4 + 0.2×2 + 0.1×3
+          = 0.4 + 1.2 + 0.4 + 0.3
+          = 2.3
+```
+
+### 12.6 Lei de Amdahl
+
+#### Fórmula
+```
+Speedup_geral = 1 / [(1 - f) + (f / Speedup_parte)]
+
+onde:
+f = fração do tempo gasta na parte melhorada
+Speedup_parte = melhoria na parte otimizada
+```
+
+#### Exemplo de Aplicação
+```
+Se 60% do tempo é gasto em multiplicações e conseguimos
+tornar as multiplicações 5× mais rápidas:
+
+f = 0.6
+Speedup_parte = 5
+
+Speedup_geral = 1 / [(1-0.6) + (0.6/5)]
+              = 1 / [0.4 + 0.12]
+              = 1 / 0.52
+              = 1.92
+
+Melhoria geral: 92%
+```
+
+### 12.7 Fatores que Afetam o Desempenho
+
+#### Hierarquia de Influência
+```
+1. Algoritmo → Instruções executadas
+2. Linguagem de programação → Instruções executadas  
+3. Compilador → Instruções executadas, CPI
+4. ISA (conjunto de instruções) → Instruções executadas, CPI, Clock
+5. Organização/Arquitetura → CPI, Clock
+6. Tecnologia → Clock
+```
+
+#### Princípios de Otimização
+1. **Torne o caso comum mais rápido**
+   - Otimize operações frequentes
+   - Cache para dados mais usados
+   
+2. **Lei de Localidade**
+   - Temporal: dados recém-usados serão reusados
+   - Espacial: dados próximos serão acessados
+
+3. **Paralelismo**
+   - Instrução: pipeline, execução superescalar
+   - Thread: múltiplos threads simultâneos
+   - Processo: múltiplos cores/processadores
+
+---
+
+## 13. Instruções do Sistema e CSR
+
+### 13.1 Control and Status Registers
+
+```assembly
+# Acesso a CSRs
+CSRRW rd, csr, rs1    # rd = csr; csr = rs1 (read-write)
+CSRRS rd, csr, rs1    # rd = csr; csr |= rs1 (read-set)
+CSRRC rd, csr, rs1    # rd = csr; csr &= ~rs1 (read-clear)
+
+# Versões com imediato (0-31)
+CSRRWI rd, csr, imm   # rd = csr; csr = imm
+CSRRSI rd, csr, imm   # rd = csr; csr |= imm  
+CSRRCI rd, csr, imm   # rd = csr; csr &= ~imm
+```
+
+### 13.2 System Calls e Exceções
+
+```assembly
+ECALL                 # Environment call (system call)
+EBREAK               # Environment break (debugger)
+URET                 # Return from user trap
+SRET                 # Return from supervisor trap  
+MRET                 # Return from machine trap
+WFI                  # Wait for interrupt
+```
+
+### 13.3 Barreiras de Memória
+
+```assembly
+FENCE                # Memory fence
+FENCE.I             # Instruction fence
+```
+
+---
+
+## 14. Pseudoinstruções e Macros Úteis
+
+### 14.1 Pseudoinstruções Completas
+
+```assembly
+# Movimento e constantes
+NOP                  # No operation → ADDI x0, x0, 0
+MV rd, rs           # Move → ADDI rd, rs, 0
+LI rd, imm          # Load immediate → LUI + ADDI
+LA rd, symbol       # Load address → AUIPC + ADDI
+
+# Negação e complemento
+NEG rd, rs          # Negate → SUB rd, x0, rs
+NOT rd, rs          # Bitwise NOT → XORI rd, rs, -1
+
+# Jumps
+J offset            # Jump → JAL x0, offset
+JR rs               # Jump register → JALR x0, 0(rs)
+RET                 # Return → JALR x0, 0(ra)
+CALL offset         # Call → AUIPC + JALR
+
+# Comparações com zero  
+SEQZ rd, rs         # Set equal zero → SLTIU rd, rs, 1
+SNEZ rd, rs         # Set not equal zero → SLTU rd, x0, rs
+SLTZ rd, rs         # Set less than zero → SLT rd, rs, x0
+SGTZ rd, rs         # Set greater than zero → SLT rd, x0, rs
+
+# Branches com zero
+BEQZ rs, offset     # Branch equal zero → BEQ rs, x0, offset
+BNEZ rs, offset     # Branch not equal zero → BNE rs, x0, offset
+BLEZ rs, offset     # Branch <= zero → BGE x0, rs, offset
+BLTZ rs, offset     # Branch < zero → BLT rs, x0, offset
+BGEZ rs, offset     # Branch >= zero → BGE rs, x0, offset  
+BGTZ rs, offset     # Branch > zero → BLT x0, rs, offset
+
+# Comparações entre registradores
+BGT rs, rt, offset  # Branch greater → BLT rt, rs, offset
+BLE rs, rt, offset  # Branch less equal → BGE rt, rs, offset
+BGTU rs, rt, offset # Branch greater unsigned → BLTU rt, rs, offset
+BLEU rs, rt, offset # Branch less equal unsigned → BGEU rt, rs, offset
+```
+
+### 14.2 Macros Úteis para Programação
+
+```assembly
+# Macro para salvar contexto
+.macro SAVE_CONTEXT
+    addi sp, sp, -256     # Aloca espaço para 32 registradores
+    sd x1, 0(sp)
+    sd x2, 8(sp)
+    # ... salva todos os registradores
+    sd x31, 248(sp)
+.end_macro
+
+# Macro para restaurar contexto
+.macro RESTORE_CONTEXT
+    ld x1, 0(sp)
+    ld x2, 8(sp)  
+    # ... restaura todos os registradores
+    ld x
