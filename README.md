@@ -1,560 +1,656 @@
 # Organização de Computadores I - UFMG
-**Guia Completo: RISC-V Assembly e Arquitetura de Computadores**
-
-## 1. Fundamentos da Arquitetura RISC-V
-
-### 1.1 ISA - Instruction Set Architecture
-**RISC-V** (RISC Five) é uma ISA aberta baseada nos princípios RISC desenvolvida na UC Berkeley.
-
-### 1.2 Princípios de Design RISC
-1. **Simplicidade favorece regularidade**
-2. **Menor é mais rápido**
-3. **Bom design exige bons compromissos**
-4. **Torne o caso comum rápido**
-
-### 1.3 Características Fundamentais
-- **Instruções de 32 bits** (4 bytes cada)
-- **Todas as instruções têm 3 operandos**
-- **Ordem fixa**: destino primeiro `OP rd, rs1, rs2`
-- **32 registradores de 64 bits** (arquitetura RV64I)
-- **Memória endereçada por bytes**
-- **Little-endian** (byte menos significativo no menor endereço)
-
-### 1.4 RISC vs CISC
-
-| Característica | RISC | CISC |
-|----------------|------|------|
-| **Instruções** | Simples, tamanho fixo | Complexas, tamanho variável |
-| **Registradores** | Muitos (32+) | Poucos (8-16) |
-| **Ciclos/Instrução** | 1-2 | 2-15 |
-| **Compilador** | Complexo | Simples |
-| **Pipeline** | Fácil | Difícil |
-| **Exemplo** | RISC-V, ARM | x86, x86-64 |
+## Resumo Completo - RISC-V Assembly e Fundamentos
 
 ---
 
-## 2. Sistema de Registradores RISC-V
+## 1. Introdução ao RISC-V
 
-### 2.1 Mapeamento Completo dos Registradores
+### 1.1 ISA - Instruction Set Architecture
+**RISC-V** é uma arquitetura de conjunto de instruções baseada nos princípios RISC (Reduced Instruction Set Computer), desenvolvida na UC Berkeley.
 
-| Reg | ABI Name | Descrição | Preservado? | Uso |
-|-----|----------|-----------|-------------|-----|
-| `x0` | `zero` | Hardwired zero | - | Sempre 0 |
+### 1.2 Filosofia RISC vs CISC
+
+| Característica | RISC | CISC |
+|----------------|------|------|
+| **Conjunto de instruções** | Pequeno e simples | Grande e complexo |
+| **Tamanho das instruções** | Fixo (32 bits) | Variável |
+| **Ciclos por instrução** | Poucos (1-3) | Muitos (3-10+) |
+| **Complexidade** | Hardware simples | Hardware complexo |
+| **Pipeline** | Fácil implementação | Difícil implementação |
+| **Exemplo** | RISC-V, ARM, MIPS | x86, x86-64 |
+
+### 1.3 Princípios de Projeto RISC-V
+1. **Simplicidade favorece regularidade**
+2. **Menor é mais rápido**
+3. **Torne o caso comum mais rápido**
+4. **Bom design exige bons compromissos**
+
+### 1.4 Características Fundamentais
+- **32 registradores** de **64 bits** cada
+- Todas as instruções têm **32 bits** (4 bytes)
+- Máximo de **3 operandos** por instrução
+- Ordem **fixa**: destino primeiro
+- Operandos devem ser **registradores** (exceto imediatos)
+
+---
+
+## 2. Sistema de Registradores
+
+### 2.1 Mapa Completo de Registradores
+
+| Reg | ABI | Descrição | Preservado | Uso |
+|-----|-----|-----------|------------|-----|
+| `x0` | `zero` | Constante 0 | N/A | Sempre zero |
 | `x1` | `ra` | Return address | Não | Endereço de retorno |
 | `x2` | `sp` | Stack pointer | Sim | Ponteiro da pilha |
-| `x3` | `gp` | Global pointer | - | Ponteiro global |
-| `x4` | `tp` | Thread pointer | - | Ponteiro de thread |
+| `x3` | `gp` | Global pointer | N/A | Ponteiro global |
+| `x4` | `tp` | Thread pointer | N/A | Ponteiro de thread |
 | `x5` | `t0` | Temporary 0 | Não | Temporário |
 | `x6` | `t1` | Temporary 1 | Não | Temporário |
 | `x7` | `t2` | Temporary 2 | Não | Temporário |
-| `x8` | `s0/fp` | Saved 0/Frame pointer | Sim | Registrador salvo |
-| `x9` | `s1` | Saved 1 | Sim | Registrador salvo |
-| `x10` | `a0` | Function arg 0 | Não | Argumento/retorno |
-| `x11` | `a1` | Function arg 1 | Não | Argumento/retorno |
-| `x12` | `a2` | Function arg 2 | Não | Argumento |
-| `x13` | `a3` | Function arg 3 | Não | Argumento |
-| `x14` | `a4` | Function arg 4 | Não | Argumento |
-| `x15` | `a5` | Function arg 5 | Não | Argumento |
-| `x16` | `a6` | Function arg 6 | Não | Argumento |
-| `x17` | `a7` | Function arg 7 | Não | Argumento |
-| `x18` | `s2` | Saved 2 | Sim | Registrador salvo |
-| `x19` | `s3` | Saved 3 | Sim | Registrador salvo |
-| `x20` | `s4` | Saved 4 | Sim | Registrador salvo |
-| `x21` | `s5` | Saved 5 | Sim | Registrador salvo |
-| `x22` | `s6` | Saved 6 | Sim | Registrador salvo |
-| `x23` | `s7` | Saved 7 | Sim | Registrador salvo |
-| `x24` | `s8` | Saved 8 | Sim | Registrador salvo |
-| `x25` | `s9` | Saved 9 | Sim | Registrador salvo |
-| `x26` | `s10` | Saved 10 | Sim | Registrador salvo |
-| `x27` | `s11` | Saved 11 | Sim | Registrador salvo |
+| `x8` | `s0/fp` | Saved/frame pointer | Sim | Registrador salvo |
+| `x9` | `s1` | Saved register 1 | Sim | Registrador salvo |
+| `x10` | `a0` | Argument 0/return 0 | Não | 1º arg/1º retorno |
+| `x11` | `a1` | Argument 1/return 1 | Não | 2º arg/2º retorno |
+| `x12` | `a2` | Argument 2 | Não | 3º argumento |
+| `x13` | `a3` | Argument 3 | Não | 4º argumento |
+| `x14` | `a4` | Argument 4 | Não | 5º argumento |
+| `x15` | `a5` | Argument 5 | Não | 6º argumento |
+| `x16` | `a6` | Argument 6 | Não | 7º argumento |
+| `x17` | `a7` | Argument 7 | Não | 8º argumento |
+| `x18` | `s2` | Saved register 2 | Sim | Registrador salvo |
+| `x19` | `s3` | Saved register 3 | Sim | Registrador salvo |
+| `x20` | `s4` | Saved register 4 | Sim | Registrador salvo |
+| `x21` | `s5` | Saved register 5 | Sim | Registrador salvo |
+| `x22` | `s6` | Saved register 6 | Sim | Registrador salvo |
+| `x23` | `s7` | Saved register 7 | Sim | Registrador salvo |
+| `x24` | `s8` | Saved register 8 | Sim | Registrador salvo |
+| `x25` | `s9` | Saved register 9 | Sim | Registrador salvo |
+| `x26` | `s10` | Saved register 10 | Sim | Registrador salvo |
+| `x27` | `s11` | Saved register 11 | Sim | Registrador salvo |
 | `x28` | `t3` | Temporary 3 | Não | Temporário |
 | `x29` | `t4` | Temporary 4 | Não | Temporário |
 | `x30` | `t5` | Temporary 5 | Não | Temporário |
 | `x31` | `t6` | Temporary 6 | Não | Temporário |
 
 ### 2.2 Registradores Especiais do Sistema
-- **PC (Program Counter)**: Endereço da instrução atual
-- **CSRs (Control and Status Registers)**: Registradores de controle e status
+- **PC (Program Counter)**: Ponteiro para instrução atual
+- **CSR (Control and Status Registers)**: Registradores de controle
 
 ### 2.3 Hierarquia de Velocidade de Acesso
-```
-Registradores (~0.1 ns) > 
-Cache L1 (~1 ns) > 
-Cache L2 (~10 ns) > 
-RAM (~100 ns) > 
-SSD (~0.1 ms) > 
-HDD (~10 ms)
-```
+1. **Registradores**: ~1 ciclo (mais rápido)
+2. **Cache L1**: ~1-3 ciclos
+3. **Cache L2**: ~10-20 ciclos
+4. **Memória Principal**: ~100-300 ciclos (mais lento)
 
 ---
 
-## 3. Formatos de Instruções RISC-V
+## 3. Formatos de Instruções
 
-### 3.1 Tipos de Formato
+### 3.1 Tipos de Instruções (32 bits cada)
 
-| Tipo | Uso | Campos | Exemplo |
-|------|-----|--------|---------|
-| **R** | Reg-Reg | funct7 \| rs2 \| rs1 \| funct3 \| rd \| opcode | `ADD rd, rs1, rs2` |
-| **I** | Imediato | imm[11:0] \| rs1 \| funct3 \| rd \| opcode | `ADDI rd, rs1, imm` |
-| **S** | Store | imm[11:5] \| rs2 \| rs1 \| funct3 \| imm[4:0] \| opcode | `SW rs2, imm(rs1)` |
-| **B** | Branch | imm \| rs2 \| rs1 \| funct3 \| imm \| opcode | `BEQ rs1, rs2, label` |
-| **U** | Upper | imm[31:12] \| rd \| opcode | `LUI rd, imm` |
-| **J** | Jump | imm[20:1] \| rd \| opcode | `JAL rd, label` |
-
-### 3.2 Distribuição de Bits (32 bits total)
+#### Formato R (Register)
 ```
-R: [31:25] [24:20] [19:15] [14:12] [11:7] [6:0]
-   funct7    rs2     rs1    funct3   rd   opcode
-
-I: [31:20]    [19:15] [14:12] [11:7] [6:0]
-   imm[11:0]    rs1    funct3   rd    opcode
+31    25 24  20 19  15 14  12 11   7 6     0
+[funct7][rs2 ][rs1 ][f3  ][rd   ][opcode]
 ```
+**Uso**: Operações aritméticas/lógicas com 3 registradores
+
+#### Formato I (Immediate)
+```
+31           20 19  15 14  12 11   7 6     0
+[imm[11:0]   ][rs1 ][f3  ][rd   ][opcode]
+```
+**Uso**: Operações com constantes, loads, jalr
+
+#### Formato S (Store)
+```
+31    25 24  20 19  15 14  12 11   7 6     0
+[im[11:5]][rs2][rs1 ][f3  ][im[4:0]][op ]
+```
+**Uso**: Instruções de store
+
+#### Formato B (Branch)
+```
+31 30    25 24  20 19  15 14  12 11 8 7 6     0
+[i][im[10:5]][rs2][rs1][f3 ][im[4:1]][i][op]
+```
+**Uso**: Desvios condicionais
+
+#### Formato U (Upper immediate)
+```
+31           12 11   7 6     0
+[imm[31:12]   ][rd   ][opcode]
+```
+**Uso**: LUI, AUIPC
+
+#### Formato J (Jump)
+```
+31 30      21 20 19     12 11   7 6     0
+[i][im[10:1]][i][im[19:12]][rd  ][opcode]
+```
+**Uso**: JAL
 
 ---
 
-## 4. Conjunto Completo de Instruções RISC-V
+## 4. Instruções Aritméticas e Lógicas
 
-### 4.1 Instruções Aritméticas (Tipo R e I)
+### 4.1 Operações Aritméticas Básicas
 
-#### Operações com Registradores (Tipo R)
+#### Instruções Tipo R
 ```assembly
-# Aritméticas básicas
-ADD  rd, rs1, rs2     # rd = rs1 + rs2
-SUB  rd, rs1, rs2     # rd = rs1 - rs2
-SLT  rd, rs1, rs2     # rd = (rs1 < rs2) ? 1 : 0 (signed)
-SLTU rd, rs1, rs2     # rd = (rs1 < rs2) ? 1 : 0 (unsigned)
+# Aritmética básica
+ADD rd, rs1, rs2      # rd = rs1 + rs2
+SUB rd, rs1, rs2      # rd = rs1 - rs2
+SLL rd, rs1, rs2      # rd = rs1 << rs2 (shift left logical)
+SRL rd, rs1, rs2      # rd = rs1 >> rs2 (shift right logical)
+SRA rd, rs1, rs2      # rd = rs1 >> rs2 (shift right arithmetic)
 
 # Operações lógicas
-AND  rd, rs1, rs2     # rd = rs1 & rs2
-OR   rd, rs1, rs2     # rd = rs1 | rs2
-XOR  rd, rs1, rs2     # rd = rs1 ^ rs2
+AND rd, rs1, rs2      # rd = rs1 & rs2
+OR rd, rs1, rs2       # rd = rs1 | rs2
+XOR rd, rs1, rs2      # rd = rs1 ^ rs2
 
-# Shifts
-SLL  rd, rs1, rs2     # rd = rs1 << rs2 (shift left logical)
-SRL  rd, rs1, rs2     # rd = rs1 >> rs2 (shift right logical)
-SRA  rd, rs1, rs2     # rd = rs1 >> rs2 (shift right arithmetic)
+# Comparações (set less than)
+SLT rd, rs1, rs2      # rd = (rs1 < rs2) ? 1 : 0 (signed)
+SLTU rd, rs1, rs2     # rd = (rs1 < rs2) ? 1 : 0 (unsigned)
 ```
 
-#### Operações com Imediatos (Tipo I)
+#### Instruções Tipo I (com imediatos)
 ```assembly
-# Aritméticas
-ADDI  rd, rs1, imm    # rd = rs1 + imm (-2048 a +2047)
-SLTI  rd, rs1, imm    # rd = (rs1 < imm) ? 1 : 0 (signed)
+# Aritmética com constantes (-2048 a +2047)
+ADDI rd, rs1, imm     # rd = rs1 + imm
+SLTI rd, rs1, imm     # rd = (rs1 < imm) ? 1 : 0 (signed)
 SLTIU rd, rs1, imm    # rd = (rs1 < imm) ? 1 : 0 (unsigned)
 
-# Lógicas
-ANDI  rd, rs1, imm    # rd = rs1 & imm
-ORI   rd, rs1, imm    # rd = rs1 | imm
-XORI  rd, rs1, imm    # rd = rs1 ^ imm
+# Operações lógicas com constantes
+ANDI rd, rs1, imm     # rd = rs1 & imm
+ORI rd, rs1, imm      # rd = rs1 | imm
+XORI rd, rs1, imm     # rd = rs1 ^ imm
 
-# Shifts (imm = 0-63 para RV64I)
-SLLI  rd, rs1, imm    # rd = rs1 << imm
-SRLI  rd, rs1, imm    # rd = rs1 >> imm (logical)
-SRAI  rd, rs1, imm    # rd = rs1 >> imm (arithmetic)
+# Shifts com constantes (shamt: 0-63)
+SLLI rd, rs1, shamt   # rd = rs1 << shamt
+SRLI rd, rs1, shamt   # rd = rs1 >> shamt (lógico)
+SRAI rd, rs1, shamt   # rd = rs1 >> shamt (aritmético)
 ```
 
-### 4.2 Instruções de Acesso à Memória
+### 4.2 Exemplos Práticos
 
-#### Load Instructions (Tipo I)
 ```assembly
-# 64-bit loads
-LD   rd, imm(rs1)     # rd = Mem[rs1 + imm] (64 bits)
+# Exemplo 1: Calcular x = (a + b) * 4
+ADD t0, a0, a1        # t0 = a + b
+SLLI t0, t0, 2        # t0 = t0 << 2 (multiplica por 4)
+MV a0, t0             # x = t0
 
-# 32-bit loads
-LW   rd, imm(rs1)     # rd = Mem[rs1 + imm] (32 bits, sign-extended)
-LWU  rd, imm(rs1)     # rd = Mem[rs1 + imm] (32 bits, zero-extended)
+# Exemplo 2: Implementar abs(x)
+SRAI t0, a0, 63       # t0 = sinal de a0 (0 ou -1)
+XOR t1, a0, t0        # t1 = a0 ^ sinal
+SUB a0, t1, t0        # a0 = t1 - sinal = |a0|
 
-# 16-bit loads  
-LH   rd, imm(rs1)     # rd = Mem[rs1 + imm] (16 bits, sign-extended)
-LHU  rd, imm(rs1)     # rd = Mem[rs1 + imm] (16 bits, zero-extended)
-
-# 8-bit loads
-LB   rd, imm(rs1)     # rd = Mem[rs1 + imm] (8 bits, sign-extended)
-LBU  rd, imm(rs1)     # rd = Mem[rs1 + imm] (8 bits, zero-extended)
-```
-
-#### Store Instructions (Tipo S)
-```assembly
-SD   rs2, imm(rs1)    # Mem[rs1 + imm] = rs2 (64 bits)
-SW   rs2, imm(rs1)    # Mem[rs1 + imm] = rs2[31:0] (32 bits)
-SH   rs2, imm(rs1)    # Mem[rs1 + imm] = rs2[15:0] (16 bits)
-SB   rs2, imm(rs1)    # Mem[rs1 + imm] = rs2[7:0] (8 bits)
-```
-
-### 4.3 Instruções de Controle de Fluxo
-
-#### Branches Condicionais (Tipo B)
-```assembly
-BEQ  rs1, rs2, label  # if (rs1 == rs2) goto label
-BNE  rs1, rs2, label  # if (rs1 != rs2) goto label
-BLT  rs1, rs2, label  # if (rs1 < rs2) goto label (signed)
-BGE  rs1, rs2, label  # if (rs1 >= rs2) goto label (signed)
-BLTU rs1, rs2, label  # if (rs1 < rs2) goto label (unsigned)
-BGEU rs1, rs2, label  # if (rs1 >= rs2) goto label (unsigned)
-```
-
-#### Jumps (Tipo J e I)
-```assembly
-JAL  rd, label        # rd = PC + 4; PC = PC + offset (±1MB)
-JALR rd, imm(rs1)     # rd = PC + 4; PC = rs1 + imm
-```
-
-### 4.4 Instruções de Constantes (Tipo U)
-```assembly
-LUI   rd, imm         # rd = imm << 12 (load upper immediate)
-AUIPC rd, imm         # rd = PC + (imm << 12) (add upper imm to PC)
-```
-
-### 4.5 Instruções de Multiplicação e Divisão (Extensão M)
-```assembly
-# Multiplicação
-MUL    rd, rs1, rs2   # rd = (rs1 * rs2)[63:0]
-MULH   rd, rs1, rs2   # rd = (rs1 * rs2)[127:64] (signed × signed)
-MULHU  rd, rs1, rs2   # rd = (rs1 * rs2)[127:64] (unsigned × unsigned)
-MULHSU rd, rs1, rs2   # rd = (rs1 * rs2)[127:64] (signed × unsigned)
-
-# Divisão
-DIV    rd, rs1, rs2   # rd = rs1 / rs2 (signed)
-DIVU   rd, rs1, rs2   # rd = rs1 / rs2 (unsigned)
-REM    rd, rs1, rs2   # rd = rs1 % rs2 (signed remainder)
-REMU   rd, rs1, rs2   # rd = rs1 % rs2 (unsigned remainder)
-```
-
-### 4.6 Pseudoinstruções Importantes
-```assembly
-# Movimento e constantes
-MV    rd, rs1         # rd = rs1 (na verdade: ADDI rd, rs1, 0)
-LI    rd, imm         # rd = imm (pode usar várias instruções)
-LA    rd, label       # rd = &label (load address)
-
-# Comparações
-SEQ   rd, rs1, rs2    # rd = (rs1 == rs2) ? 1 : 0
-SNE   rd, rs1, rs2    # rd = (rs1 != rs2) ? 1 : 0
-SGT   rd, rs1, rs2    # rd = (rs1 > rs2) ? 1 : 0
-SGE   rd, rs1, rs2    # rd = (rs1 >= rs2) ? 1 : 0
-
-# Jumps
-J     label           # goto label (na verdade: JAL x0, label)
-JR    rs1             # goto rs1 (na verdade: JALR x0, 0(rs1))
-RET                   # return (na verdade: JALR x0, 0(ra))
-
-# Negação
-NEG   rd, rs1         # rd = -rs1 (na verdade: SUB rd, x0, rs1)
-NOT   rd, rs1         # rd = ~rs1 (na verdade: XORI rd, rs1, -1)
-
-# Operações especiais
-NOP                   # No operation (na verdade: ADDI x0, x0, 0)
+# Exemplo 3: Swap de duas variáveis sem temporário
+XOR a0, a0, a1        # a0 = a0 ^ a1
+XOR a1, a0, a1        # a1 = (a0 ^ a1) ^ a1 = a0
+XOR a0, a0, a1        # a0 = (a0 ^ a1) ^ a0 = a1
 ```
 
 ---
 
-## 5. Instruções de Ponto Flutuante (Extensão F/D)
+## 5. Acesso à Memória
 
-### 5.1 Registradores de Ponto Flutuante
-- **32 registradores FP**: `f0` até `f31` (64 bits cada)
-- **Separados dos registradores inteiros**
-- **FCSR**: Floating-point Control and Status Register
+### 5.1 Instruções de Load (Memória → Registrador)
 
-### 5.2 Load/Store de Ponto Flutuante
 ```assembly
-# Single precision (32 bits)
-FLW   ft1, imm(rs1)   # ft1 = Mem[rs1 + imm] (32 bits)
-FSW   ft1, imm(rs1)   # Mem[rs1 + imm] = ft1[31:0]
+# Loads com extensão de sinal
+LB rd, offset(rs1)    # Load byte (8 bits) com sinal
+LH rd, offset(rs1)    # Load halfword (16 bits) com sinal  
+LW rd, offset(rs1)    # Load word (32 bits) com sinal
+LD rd, offset(rs1)    # Load doubleword (64 bits)
 
-# Double precision (64 bits)
-FLD   ft1, imm(rs1)   # ft1 = Mem[rs1 + imm] (64 bits)
-FSD   ft1, imm(rs1)   # Mem[rs1 + imm] = ft1
+# Loads sem extensão de sinal (unsigned)
+LBU rd, offset(rs1)   # Load byte unsigned
+LHU rd, offset(rs1)   # Load halfword unsigned
+LWU rd, offset(rs1)   # Load word unsigned
 ```
 
-### 5.3 Operações Aritméticas de Ponto Flutuante
-```assembly
-# Single precision
-FADD.S  fd, fs1, fs2  # fd = fs1 + fs2
-FSUB.S  fd, fs1, fs2  # fd = fs1 - fs2
-FMUL.S  fd, fs1, fs2  # fd = fs1 * fs2
-FDIV.S  fd, fs1, fs2  # fd = fs1 / fs2
-FSQRT.S fd, fs1       # fd = sqrt(fs1)
+### 5.2 Instruções de Store (Registrador → Memória)
 
-# Double precision
-FADD.D  fd, fs1, fs2  # fd = fs1 + fs2
-FSUB.D  fd, fs1, fs2  # fd = fs1 - fs2
-FMUL.D  fd, fs1, fs2  # fd = fs1 * fs2
-FDIV.D  fd, fs1, fs2  # fd = fs1 / fs2
-FSQRT.D fd, fs1       # fd = sqrt(fs1)
+```assembly
+SB rs2, offset(rs1)   # Store byte (8 bits)
+SH rs2, offset(rs1)   # Store halfword (16 bits)
+SW rs2, offset(rs1)   # Store word (32 bits)  
+SD rs2, offset(rs1)   # Store doubleword (64 bits)
 ```
 
-### 5.4 Comparações de Ponto Flutuante
-```assembly
-# Single precision
-FEQ.S   rd, fs1, fs2  # rd = (fs1 == fs2) ? 1 : 0
-FLT.S   rd, fs1, fs2  # rd = (fs1 < fs2) ? 1 : 0
-FLE.S   rd, fs1, fs2  # rd = (fs1 <= fs2) ? 1 : 0
+### 5.3 Endereçamento e Alinhamento
 
-# Double precision
-FEQ.D   rd, fs1, fs2  # rd = (fs1 == fs2) ? 1 : 0
-FLT.D   rd, fs1, fs2  # rd = (fs1 < fs2) ? 1 : 0
-FLE.D   rd, fs1, fs2  # rd = (fs1 <= fs2) ? 1 : 0
+#### Tamanhos de Dados
+| Tipo | Tamanho | Alinhamento | Range offset |
+|------|---------|-------------|--------------|
+| byte | 8 bits | 1 byte | -2048 a +2047 |
+| halfword | 16 bits | 2 bytes | deve ser par |
+| word | 32 bits | 4 bytes | múltiplo de 4 |
+| doubleword | 64 bits | 8 bytes | múltiplo de 8 |
+
+#### Cálculo de Endereços para Arrays
+```assembly
+# Array A[i], onde cada elemento tem 8 bytes
+# Endereço = base + i * 8
+
+# Método 1: Multiplicação direta
+SLL t0, t1, 3         # t0 = i * 8 (shift left 3)
+ADD t0, t0, t2        # t0 = base + i * 8
+LD t3, 0(t0)          # Carrega A[i]
+
+# Método 2: Usando offset direto  
+LD t3, 0(t2)          # A[0]
+LD t3, 8(t2)          # A[1]  
+LD t3, 16(t2)         # A[2]
 ```
 
-### 5.5 Conversões de Ponto Flutuante
+### 5.4 Exemplos Complexos
+
 ```assembly
-# Conversões int ↔ float
-FCVT.S.W  fd, rs1     # fd = (float) rs1 (int32 → float)
-FCVT.S.WU fd, rs1     # fd = (float) rs1 (uint32 → float)
-FCVT.S.L  fd, rs1     # fd = (float) rs1 (int64 → float)
-FCVT.S.LU fd, rs1     # fd = (float) rs1 (uint64 → float)
+# Exemplo 1: C[i] = A[i] + B[i] (arrays de inteiros 64-bit)
+# Assumindo: a0=base_A, a1=base_B, a2=base_C, a3=i
+SLL t0, a3, 3         # t0 = i * 8
+ADD t1, a0, t0        # t1 = &A[i]
+ADD t2, a1, t0        # t2 = &B[i]
+ADD t3, a2, t0        # t3 = &C[i]
+LD t4, 0(t1)          # t4 = A[i]
+LD t5, 0(t2)          # t5 = B[i]
+ADD t6, t4, t5        # t6 = A[i] + B[i]
+SD t6, 0(t3)          # C[i] = A[i] + B[i]
 
-FCVT.W.S  rd, fs1     # rd = (int32) fs1
-FCVT.WU.S rd, fs1     # rd = (uint32) fs1
-FCVT.L.S  rd, fs1     # rd = (int64) fs1
-FCVT.LU.S rd, fs1     # rd = (uint64) fs1
-
-# Conversões entre precisões
-FCVT.D.S  fd, fs1     # double = single
-FCVT.S.D  fd, fs1     # single = double
+# Exemplo 2: Copiar string (até encontrar '\0')
+copy_loop:
+    LB t0, 0(a0)      # Carrega caractere da string origem
+    SB t0, 0(a1)      # Armazena na string destino
+    BEQZ t0, done     # Se '\0', termina
+    ADDI a0, a0, 1    # Próximo caractere origem
+    ADDI a1, a1, 1    # Próximo caractere destino
+    J copy_loop
+done:
 ```
 
 ---
 
-## 6. Representação Numérica
+## 6. Instruções de Controle de Fluxo
 
-### 6.1 Sistemas de Numeração
-
-#### Conversão Entre Bases
-| Decimal | Binário | Octal | Hexadecimal |
-|---------|---------|-------|-------------|
-| 0 | 0000 | 0 | 0 |
-| 1 | 0001 | 1 | 1 |
-| 2 | 0010 | 2 | 2 |
-| 3 | 0011 | 3 | 3 |
-| 4 | 0100 | 4 | 4 |
-| 5 | 0101 | 5 | 5 |
-| 6 | 0110 | 6 | 6 |
-| 7 | 0111 | 7 | 7 |
-| 8 | 1000 | 10 | 8 |
-| 9 | 1001 | 11 | 9 |
-| 10 | 1010 | 12 | A |
-| 11 | 1011 | 13 | B |
-| 12 | 1100 | 14 | C |
-| 13 | 1101 | 15 | D |
-| 14 | 1110 | 16 | E |
-| 15 | 1111 | 17 | F |
-
-#### Método de Conversão
-```
-Decimal → Binário: Divisões sucessivas por 2
-Binário → Decimal: Soma das potências de 2
-Hex → Binário: 1 dígito hex = 4 bits
-Octal → Binário: 1 dígito octal = 3 bits
-```
-
-### 6.2 Representação de Inteiros
-
-#### Extensão de Sinal
-```
-4 bits → 8 bits:
-0101 (+5) → 00000101 (+5)
-1101 (-3) → 11111101 (-3)
-
-Regra: Replica o bit de sinal (MSB)
-```
-
-#### Faixas de Representação
-| Bits | Unsigned | Signed (Complemento de 2) |
-|------|----------|---------------------------|
-| 8 | 0 a 255 | -128 a +127 |
-| 16 | 0 a 65.535 | -32.768 a +32.767 |
-| 32 | 0 a 4.294.967.295 | -2.147.483.648 a +2.147.483.647 |
-| 64 | 0 a 18.446.744.073.709.551.615 | -9.223.372.036.854.775.808 a +9.223.372.036.854.775.807 |
-
-#### Métodos de Representação de Números Negativos
-
-**1. Sinal-Magnitude**
-- Bit mais significativo = sinal (0=+, 1=-)
-- Problema: Dois zeros (+0 e -0)
-
-**2. Complemento de 1**
-- Inverte todos os bits
-- Problema: Dois zeros, aritmética complicada
-
-**3. Complemento de 2 (Padrão)**
-- Para negar: Inverte todos os bits + 1
-- Um único zero, aritmética simples
-
-```
-Exemplo (8 bits):
-+5 = 00000101
-~5 = 11111010  (complemento de 1)
--5 = 11111011  (complemento de 2 = ~5 + 1)
-```
-
-### 6.3 Overflow e Underflow
-
-#### Detecção de Overflow em Soma (Complemento de 2)
-```
-Overflow ocorre quando:
-- Positivo + Positivo = Negativo
-- Negativo + Negativo = Positivo
-
-Não há overflow quando:
-- Positivo + Negativo (qualquer resultado)
-```
-
-#### Exemplos (4 bits)
-```
-  0111 (+7)     1000 (-8)
-+ 0001 (+1)   + 1111 (-1)
------------- + ----------- 
-  1000 (-8)     0111 (+7)
-  OVERFLOW!     OVERFLOW!
-```
-
----
-
-## 7. Ponto Flutuante IEEE 754
-
-### 7.1 Formato de Representação
-
-#### Estrutura Geral: `S | Expoente | Mantissa`
-
-| Precisão | Total | Sinal | Expoente | Mantissa | Bias |
-|----------|-------|-------|----------|----------|------|
-| **Half** | 16 | 1 | 5 | 10 | 15 |
-| **Single** | 32 | 1 | 8 | 23 | 127 |
-| **Double** | 64 | 1 | 11 | 52 | 1023 |
-| **Quad** | 128 | 1 | 15 | 112 | 16383 |
-
-### 7.2 Classificação de Números
-
-| Tipo | Expoente | Mantissa | Valor | Exemplo |
-|------|----------|----------|-------|---------|
-| **Zero** | 00...0 | 00...0 | ±0 | +0.0, -0.0 |
-| **Subnormal** | 00...0 | ≠0 | ±0.mantissa × 2^(1-bias) | Números muito pequenos |
-| **Normal** | 00...01 a 11...10 | Qualquer | ±1.mantissa × 2^(exp-bias) | Números normais |
-| **Infinito** | 11...1 | 00...0 | ±∞ | +∞, -∞ |
-| **NaN** | 11...1 | ≠0 | Not a Number | SNAN, QNAN |
-
-### 7.3 Casos Especiais
-
-#### NaN (Not a Number)
-- **SNAN (Signaling NaN)**: Gera exceção quando usado
-- **QNAN (Quiet NaN)**: Não gera exceção, propaga
-
-#### Operações que Geram NaN
-```
-0/0, ∞/∞, ∞-∞, 0×∞, sqrt(negativo), log(negativo)
-```
-
-#### Operações que Geram Infinito
-```
-1/0 = ±∞
-overflow em operação = ±∞
-```
-
-### 7.4 Exemplo de Conversão (Single Precision)
-
-**Converter -12.375 para IEEE 754:**
-
-1. **Binário**: 12.375 = 1100.011₂
-2. **Normalizar**: 1.100011 × 2³
-3. **Sinal**: 1 (negativo)
-4. **Expoente**: 3 + 127 = 130 = 10000010₂
-5. **Mantissa**: 100011 (completar com zeros) = 10001100000000000000000₂
-
-**Resultado**: `1 10000010 10001100000000000000000`
-**Hex**: `C1460000`
-
-### 7.5 Exceções de Ponto Flutuante
-
-| Exceção | Causa | Resultado Padrão |
-|---------|-------|------------------|
-| **Invalid Operation** | 0/0, sqrt(-1) | NaN |
-| **Division by Zero** | 1/0 | ±∞ |
-| **Overflow** | Resultado muito grande | ±∞ |
-| **Underflow** | Resultado muito pequeno | 0 ou subnormal |
-| **Inexact** | Resultado arredondado | Valor arredondado |
-
----
-
-## 8. Programação em Assembly RISC-V
-
-### 8.1 Estrutura de Programa
+### 6.1 Desvios Condicionais
 
 ```assembly
-# Diretivas de dados
+# Comparações de igualdade
+BEQ rs1, rs2, label   # Branch if rs1 == rs2
+BNE rs1, rs2, label   # Branch if rs1 != rs2
+
+# Comparações signed
+BLT rs1, rs2, label   # Branch if rs1 < rs2 (signed)
+BLE rs1, rs2, label   # Branch if rs1 <= rs2 (signed)
+BGT rs1, rs2, label   # Branch if rs1 > rs2 (signed)
+BGE rs1, rs2, label   # Branch if rs1 >= rs2 (signed)
+
+# Comparações unsigned
+BLTU rs1, rs2, label  # Branch if rs1 < rs2 (unsigned)
+BLEU rs1, rs2, label  # Branch if rs1 <= rs2 (unsigned)
+BGTU rs1, rs2, label  # Branch if rs1 > rs2 (unsigned)
+BGEU rs1, rs2, label  # Branch if rs1 >= rs2 (unsigned)
+
+# Comparações com zero (pseudoinstruções)
+BEQZ rs1, label       # Branch if rs1 == 0
+BNEZ rs1, label       # Branch if rs1 != 0
+BLEZ rs1, label       # Branch if rs1 <= 0
+BLTZ rs1, label       # Branch if rs1 < 0
+BGEZ rs1, label       # Branch if rs1 >= 0
+BGTZ rs1, label       # Branch if rs1 > 0
+```
+
+### 6.2 Saltos Incondicionais
+
+```assembly
+J label               # Jump (pseudoinstrução para JAL x0, label)
+JAL rd, label         # Jump and link
+JALR rd, offset(rs1)  # Jump and link register
+JR rs1                # Jump register (pseudoinstrução para JALR x0, 0(rs1))
+```
+
+### 6.3 Estruturas de Controle
+
+#### IF-ELSE
+```cpp
+// C++
+if (a == b) {
+    c = d + e;
+} else {
+    c = d - e;
+}
+
+// RISC-V
+BNE a0, a1, else_part
+    ADD a2, a3, a4        # c = d + e
+    J endif
+else_part:
+    SUB a2, a3, a4        # c = d - e  
+endif:
+```
+
+#### WHILE Loop
+```cpp
+// C++
+while (i < n) {
+    sum += array[i];
+    i++;
+}
+
+// RISC-V
+while_loop:
+    BGE t0, t1, end_while # if i >= n, exit
+    SLL t2, t0, 3         # t2 = i * 8
+    ADD t3, a0, t2        # t3 = &array[i]
+    LD t4, 0(t3)          # t4 = array[i]
+    ADD t5, t5, t4        # sum += array[i]
+    ADDI t0, t0, 1        # i++
+    J while_loop
+end_while:
+```
+
+#### FOR Loop
+```cpp
+// C++
+for (int i = 0; i < 10; i++) {
+    array[i] = i * 2;
+}
+
+// RISC-V
+    LI t0, 0              # i = 0
+for_loop:
+    LI t1, 10
+    BGE t0, t1, end_for   # if i >= 10, exit
+    SLL t2, t0, 1         # t2 = i * 2
+    SLL t3, t0, 3         # t3 = i * 8 (offset)
+    ADD t4, a0, t3        # t4 = &array[i]
+    SD t2, 0(t4)          # array[i] = i * 2
+    ADDI t0, t0, 1        # i++
+    J for_loop
+end_for:
+```
+
+#### SWITCH-CASE (Jump Table)
+```cpp
+// C++
+switch (x) {
+    case 0: y = x + 1; break;
+    case 1: y = x * 2; break;
+    case 2: y = x - 1; break;
+    default: y = 0;
+}
+
+// RISC-V
+    LI t0, 3
+    BGEU a0, t0, default_case
+    SLL t1, a0, 3         # t1 = x * 8 (cada endereço = 8 bytes)
+    LA t2, jump_table     # Carrega endereço da tabela
+    ADD t3, t2, t1        # t3 = &jump_table[x]
+    LD t4, 0(t3)          # t4 = jump_table[x]
+    JR t4                 # Pula para o caso
+
+case_0:
+    ADDI a1, a0, 1        # y = x + 1
+    J end_switch
+case_1:
+    SLL a1, a0, 1         # y = x * 2
+    J end_switch
+case_2:
+    ADDI a1, a0, -1       # y = x - 1
+    J end_switch
+default_case:
+    LI a1, 0              # y = 0
+end_switch:
+
 .data
-    # Declaração de variáveis globais
-    .align 3                    # Alinha em múltiplos de 8 bytes
-    array:    .quad 1, 2, 3, 4, 5      # Array de 5 elementos (64-bit cada)
-    string:   .string "Hello World\n"   # String terminada em null
-    value:    .word 42                  # Valor de 32 bits
-    pi:       .float 3.14159            # Ponto flutuante (32 bits)
-    e:        .double 2.71828           # Ponto flutuante (64 bits)
-    buffer:   .space 100               # Reserve 100 bytes zerados
-
-# Seção de código
-.text
-.globl _start                   # Ponto de entrada global
-
-_start:
-    # Programa principal
-    la t0, array               # Carrega endereço do array
-    li t1, 5                   # Contador = 5
-    
-    # Chama função
-    jal ra, process_array
-    
-    # Sai do programa
-    li a7, 93                  # System call exit (Linux)
-    li a0, 0                   # Código de saída
-    ecall
-
-# Função para processar array
-process_array:
-    # Salva registradores na pilha
-    addi sp, sp, -16           # Aloca espaço na pilha
-    sd s0, 8(sp)              # Salva s0
-    sd s1, 0(sp)              # Salva s1
-    
-    # Código da função
-    mv s0, t0                  # s0 = endereço do array
-    mv s1, t1                  # s1 = tamanho
-    
-    # Processa elementos...
-    
-    # Restaura registradores
-    ld s1, 0(sp)              # Restaura s1
-    ld s0, 8(sp)              # Restaura s0
-    addi sp, sp, 16           # Libera espaço da pilha
-    
-    # Retorna
-    jr ra
+jump_table:
+    .quad case_0
+    .quad case_1  
+    .quad case_2
 ```
 
-### 8.2 Diretivas do Assembler
+---
 
-| Diretiva | Descrição | Exemplo |
-|----------|-----------|---------|
-| `.data` | Seção de dados | `.data` |
-| `.text` | Seção de código | `.text` |
-| `.globl` | Símbolo global | `.globl main` |
-| `.align n` | Alinha em 2ⁿ bytes | `.align 3` (8 bytes) |
-| `.word` | 32-bit integer | `.word 42` |
-| `.quad` | 64-bit integer | `.quad 0x123456789ABCDEF` |
-| `.byte` | 8-bit integer | `.byte 255` |
-| `.half` | 16-bit integer | `.half 1000` |
-| `.float` | 32-bit float | `.float 3.14` |
-| `.double` | 64-bit float | `.double 2.71828` |
-| `.string` | String com \0 | `.string "Hello"` |
-| `.ascii` | String sem \0 | `.ascii "World"` |
-| `.space n` | n bytes zerados | `.space 100` |
-| `.equ` | Definir constante | `.equ SIZE, 10` |
+## 7. Multiplicação e Divisão
 
-### 8.3 System Calls (Linux RISC-V)
+### 7.1 Instruções de Multiplicação (RV32M/RV64M)
 
-| Número | Nome | a0 | a1 | a2 | a3 | Retorno |
-|---------|------|----|----|----|----|---------|
-| 63 | read | fd | buffer | count | - | bytes lidos |
-| 64 | write | fd | buffer | count | - | bytes escritos |
-| 57 | close | fd | - | - | - | status |
-| 56 | openat
+```assembly
+# Multiplicação básica
+MUL rd, rs1, rs2      # rd = (rs1 * rs2)[31:0] (lower 32/64 bits)
+
+# Multiplicação com parte alta
+MULH rd, rs1, rs2     # rd = (rs1 * rs2)[63:32] (signed × signed)
+MULHU rd, rs1, rs2    # rd = (rs1 * rs2)[63:32] (unsigned × unsigned)  
+MULHSU rd, rs1, rs2   # rd = (rs1 * rs2)[63:32] (signed × unsigned)
+
+# Para RV64I
+MULW rd, rs1, rs2     # 32-bit multiply, sign-extend result
+```
+
+### 7.2 Instruções de Divisão
+
+```assembly
+# Divisão com sinal
+DIV rd, rs1, rs2      # rd = rs1 / rs2 (signed)
+REM rd, rs1, rs2      # rd = rs1 % rs2 (signed remainder)
+
+# Divisão sem sinal  
+DIVU rd, rs1, rs2     # rd = rs1 / rs2 (unsigned)
+REMU rd, rs1, rs2     # rd = rs1 % rs2 (unsigned remainder)
+
+# Para RV64I
+DIVW rd, rs1, rs2     # 32-bit signed division
+DIVUW rd, rs1, rs2    # 32-bit unsigned division
+REMW rd, rs1, rs2     # 32-bit signed remainder
+REMUW rd, rs1, rs2    # 32-bit unsigned remainder
+```
+
+### 7.3 Casos Especiais de Divisão
+
+| Operação | Resultado DIV | Resultado REM |
+|----------|---------------|---------------|
+| `x / 0` | -1 | x |
+| `-2^31 / -1` | -2^31 | 0 |
+| `x / y` (normal) | x/y | x%y |
+
+### 7.4 Exemplos Práticos
+
+```assembly
+# Exemplo 1: Multiplicação por constante (x * 10)
+# 10 = 8 + 2 = 2^3 + 2^1
+SLL t0, a0, 3         # t0 = x * 8
+SLL t1, a0, 1         # t1 = x * 2
+ADD a0, t0, t1        # a0 = x * 8 + x * 2 = x * 10
+
+# Exemplo 2: Divisão por potência de 2 (x / 8)
+# Método 1: Shift aritmético (apenas positivos)
+SRAI a0, a0, 3        # a0 = x / 8
+
+# Método 2: Divisão com correção para negativos
+ADDI t0, a0, 7        # t0 = x + 7
+SRAI t0, t0, 3        # t0 = (x + 7) / 8
+SRAI t1, a0, 63       # t1 = sinal de x (0 ou -1)
+AND t1, t1, 7         # t1 = 0 se x>=0, 7 se x<0
+ADD t0, a0, t1        # Adiciona correção
+SRAI a0, t0, 3        # a0 = x / 8 (correto para negativos)
+
+# Exemplo 3: Implementar x^n usando multiplicação sucessiva
+# power(base=a0, exp=a1) -> result=a0
+    LI t0, 1              # result = 1
+    MV t1, a0             # base atual
+power_loop:
+    BEQZ a1, power_done   # if exp == 0, done
+    ANDI t2, a1, 1        # t2 = exp & 1 (bit menos significativo)
+    BEQZ t2, skip_mult
+    MUL t0, t0, t1        # result *= base_atual
+skip_mult:
+    MUL t1, t1, t1        # base_atual = base_atual^2
+    SRLI a1, a1, 1        # exp >>= 1
+    J power_loop
+power_done:
+    MV a0, t0             # retorna resultado
+```
+
+---
+
+## 8. Instruções de Constantes e Endereços
+
+### 8.1 Instruções para Constantes Grandes
+
+```assembly
+# Load Upper Immediate (carrega 20 bits superiores)
+LUI rd, imm           # rd[31:12] = imm, rd[11:0] = 0
+
+# Add Upper Immediate to PC  
+AUIPC rd, imm         # rd = PC + (imm << 12)
+```
+
+### 8.2 Pseudoinstruções Úteis
+
+```assembly
+# Load Immediate (para valores de 32 bits)
+LI rd, constant       # Expandido pelo assembler
+
+# Exemplos de expansão:
+LI t0, 0x12345678     # → LUI t0, 0x12346
+                      #   ADDI t0, t0, 0x678
+
+# Load Address (carrega endereço de símbolo)
+LA rd, symbol         # rd = endereço de symbol
+
+# Move (copia registrador)
+MV rd, rs             # rd = rs → ADDI rd, rs, 0
+
+# Negate
+NEG rd, rs            # rd = -rs → SUB rd, x0, rs
+
+# Not  
+NOT rd, rs            # rd = ~rs → XORI rd, rs, -1
+
+# Set Equal Zero
+SEQZ rd, rs           # rd = (rs == 0) ? 1 : 0 → SLTIU rd, rs, 1
+
+# Set Not Equal Zero
+SNEZ rd, rs           # rd = (rs != 0) ? 1 : 0 → SLTU rd, x0, rs
+```
+
+### 8.3 Exemplos de Constantes
+
+```assembly
+# Carregar diferentes tipos de constantes
+LI t0, 42             # Pequena constante positiva
+LI t1, -1000          # Pequena constante negativa  
+LI t2, 0x80000000     # Constante grande (2^31)
+LI t3, 0x123456789ABC # Constante de 64 bits
+
+# Endereços de símbolos
+LA t0, main           # Endereço da função main
+LA t1, data_array     # Endereço de array de dados
+LA t2, string_msg     # Endereço de string
+```
+
+---
+
+## 9. Chamadas de Procedimento e Pilha
+
+### 9.1 Convenção de Chamada (ABI)
+
+#### Registradores de Argumentos e Retorno
+```assembly
+# Argumentos: a0-a7 (x10-x17)  
+# Retorno: a0-a1 (x10-x11)
+# Endereço de retorno: ra (x1)
+
+# Exemplo de função: int add(int a, int b, int c)
+add_function:
+    ADD a0, a0, a1        # a0 = a + b
+    ADD a0, a0, a2        # a0 = a + b + c
+    JALR x0, 0(ra)        # return a0
+```
+
+#### Uso da Pilha (Stack)
+```assembly
+# Prólogo da função (salvar registradores)
+addi sp, sp, -16          # Aloca 16 bytes na pilha
+sd ra, 8(sp)              # Salva endereço de retorno
+sd s0, 0(sp)              # Salva registrador s0
+
+# Corpo da função
+# ...
+
+# Epílogo da função (restaurar registradores)  
+ld s0, 0(sp)              # Restaura s0
+ld ra, 8(sp)              # Restaura ra
+addi sp, sp, 16           # Desaloca pilha
+jalr x0, 0(ra)            # Retorna
+```
+
+### 9.2 Exemplo de Função Recursiva (Fatorial)
+
+```cpp
+// C++
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+// RISC-V
+factorial:
+    # Prólogo
+    addi sp, sp, -16      # Aloca pilha
+    sd ra, 8(sp)          # Salva ra
+    sd a0, 0(sp)          # Salva n
+    
+    # Caso base: if n <= 1
+    li t0, 1
+    ble a0, t0, base_case
+    
+    # Caso recursivo: n * factorial(n-1)
+    addi a0, a0, -1       # a0 = n - 1
+    jal ra, factorial     # factorial(n-1)
+    
+    # a0 agora contém factorial(n-1)
+    ld t0, 0(sp)          # Recupera n original
+    mul a0, t0, a0        # a0 = n * factorial(n-1)
+    j epilogue
+    
+base_case:
+    li a0, 1              # return 1
+    
+epilogue:
+    # Epílogo
+    ld ra, 8(sp)          # Restaura ra
+    addi sp, sp, 16       # Desaloca pilha
+    jalr x0, 0(ra)        # Retorna
+```
+
+### 9.3 Passagem de Muitos Argumentos
+
+```cpp
+// C++ - função com muitos argumentos
+int func(int a1, int a2, int a3, int a4, int a5, 
+         int a6, int a7, int a8, int a9, int a10);
+
+// RISC-V - argumentos 9 e 10 vão para a pilha
+call_func:
+    # Argumentos 1-8 em a0-a7
+    li a0, 1
+    li a1, 2
+    li a2, 3
+    li a3, 4  
+    li a4, 5
+    li a5, 6
+    li a6, 7
+    li a7, 8
+    
+    # Argumentos 9-10 na pilha
+    li t0, 9
+    li t1, 10
+    addi sp, sp, -16      # Aloca pilha
+    sd t0, 0(sp)          # 9º argumento  
+    sd t1, 8(sp)          # 10º
