@@ -74,6 +74,13 @@ onetime_pad:
     #   a1 = endereço da chave 
     #   a2 = tamanho da mensagem 
     # Realiza mensagem[i] = mensagem[i] XOR chave[i] 
+
+    a3 = a0
+    a4 = a1
+    
+
+    
+
 jalr zero, 0(ra) 
  
 ##### R2 END MODIFIQUE AQUI END ##### 
