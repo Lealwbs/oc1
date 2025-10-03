@@ -75,13 +75,34 @@ onetime_pad:
     #   a2 = tamanho da mensagem 
     # Realiza mensagem[i] = mensagem[i] XOR chave[i] 
 
-    a3 = a0
-    a4 = a1
+    # Inicializa contador
+    addi t0, zero, 0          # t0 = i = 0
     
-
+loop_otp:
+    beq t0, a2, fim_otp       # se i == tamanho, termina
     
-
-jalr zero, 0(ra) 
+    # Calcula offset: i * 4 (pois cada word tem 4 bytes)
+    slli t1, t0, 2            # t1 = i * 4
+    
+    # Carrega mensagem[i] e chave[i]
+    add t2, a0, t1            # t2 = endereço de mensagem[i]
+    lw t3, 0(t2)              # t3 = mensagem[i]
+    
+    add t4, a1, t1            # t4 = endereço de chave[i]
+    lw t5, 0(t4)              # t5 = chave[i]
+    
+    # Aplica XOR
+    xor t6, t3, t5            # t6 = mensagem[i] XOR chave[i]
+    
+    # Armazena resultado de volta na mensagem
+    sw t6, 0(t2)              # mensagem[i] = resultado
+    
+    # Incrementa contador
+    addi t0, t0, 1            # i++
+    j loop_otp                # volta para o loop
+    
+fim_otp:
+    jalr zero, 0(ra)          # retorna
  
 ##### R2 END MODIFIQUE AQUI END ##### 
  
